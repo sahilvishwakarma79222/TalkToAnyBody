@@ -18,21 +18,20 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Create data directory for H2 database
-RUN mkdir -p /app/data
+# Create non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Create data directory for H2 database and set permissions
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data
 
 # Copy jar from build stage
 COPY --from=build /app/target/*.jar app.jar
 
+# Switch to non-root user
+USER appuser
+
 # Expose port
 EXPOSE 8080
-
-# Set environment variables for production (fixed URL)
-ENV DB_URL="jdbc:h2:file:/app/data/chatapp;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE"
-ENV CACHE_ENABLED=true
-ENV SQL_SHOW=false
-ENV H2_CONSOLE=false
-ENV LOG_LEVEL=INFO
 
 # Run with dynamic port for Render
 ENTRYPOINT ["sh", "-c", "java -jar -Dserver.port=${PORT:-8080} app.jar"]

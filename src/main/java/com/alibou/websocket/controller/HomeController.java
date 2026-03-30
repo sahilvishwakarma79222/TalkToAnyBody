@@ -101,4 +101,9 @@ public class HomeController {
                 .map(UserDTO::fromUser)
                 .collect(Collectors.toList());
     }
+    
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
 }
