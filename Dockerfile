@@ -24,8 +24,15 @@ RUN mkdir -p /app/data
 # Copy jar from build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose port (Render will use PORT env variable)
+# Expose port
 EXPOSE 8080
+
+# Set environment variables for production
+ENV DB_URL="jdbc:h2:file:/app/data/chatapp;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE"
+ENV CACHE_ENABLED=true
+ENV SQL_SHOW=false
+ENV H2_CONSOLE=false
+ENV LOG_LEVEL=INFO
 
 # Run with dynamic port for Render
 ENTRYPOINT ["sh", "-c", "java -jar -Dserver.port=${PORT:-8080} app.jar"]
