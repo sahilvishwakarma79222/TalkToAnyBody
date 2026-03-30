@@ -18,10 +18,16 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Create non-root user for security
+# Install tzdata for timezone support
+RUN apk add --no-cache tzdata
+
+# Set timezone to Asia/Kolkata (IST)
+ENV TZ=Asia/Kolkata
+
+# Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Create data directory for H2 database and set permissions
+# Create data directory for H2 database
 RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data
 
 # Copy jar from build stage
@@ -34,4 +40,4 @@ USER appuser
 EXPOSE 8080
 
 # Run with dynamic port for Render
-ENTRYPOINT ["sh", "-c", "java -jar -Dserver.port=${PORT:-8080} app.jar"]
+ENTRYPOINT ["sh", "-c", "java -jar -Dserver.port=${PORT:-8080} -Duser.timezone=Asia/Kolkata app.jar"]

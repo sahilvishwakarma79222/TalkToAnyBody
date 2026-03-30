@@ -705,21 +705,57 @@
     });
 }
         
-        // Join Fixed Room
-        function joinFixedRoom() {
-            showToast('Joining fixed room...', 'info');
-            
-            fetch('/api/room/fixed')
-                .then(response => response.json())
-                .then(data => {
-                    joinPrivateRoom(data.roomId, data.password);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showToast('Failed to join fixed room', 'error');
-                });
-        }
+    // Join Fixed Room
+       function joinFixedRoom() {
+           let modal = document.createElement('div');
+           modal.className = 'modal';
+           modal.style.display = 'flex';
+           modal.innerHTML = `
+               <div class="modal-content" style="max-width: 350px;">
+                   <h3>⭐ Join Fixed Space</h3>
+                   <input type="text" id="fixedRoomId" placeholder="Room ID" style="width: 100%; margin-bottom: 10px; background: #3A3A3A; border: 1px solid #4A4A4A; border-radius: 8px; color: #E9EDEF; padding: 10px;">
+                   <input type="password" id="fixedRoomPass" placeholder="Password" style="width: 100%; margin-bottom: 15px; background: #3A3A3A; border: 1px solid #4A4A4A; border-radius: 8px; color: #E9EDEF; padding: 10px;">
+                   <div>
+                       <button class="modal-btn-primary" onclick="submitFixedRoom()">Join</button>
+                       <button class="modal-btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                   </div>
+               </div>
+           `;
+           document.body.appendChild(modal);
+       }
         
+    
+       function submitFixedRoom() {
+    	    let roomId = document.getElementById('fixedRoomId').value.trim();
+    	    let password = document.getElementById('fixedRoomPass').value.trim();
+    	    
+    	    if (!roomId || !password) {
+    	        showToast('Please enter Room ID and Password', 'error');
+    	        return;
+    	    }
+    	    
+    	    let modal = document.querySelector('.modal');
+    	    if (modal) modal.remove();
+    	    
+    	    const FIXED_ROOM_ID = 'jojo';
+    	    const FIXED_ROOM_PASS = '123456';
+    	    
+    	    if (roomId === FIXED_ROOM_ID && password === FIXED_ROOM_PASS) {
+    	        showToast('Joining fixed room...', 'info');
+    	        
+    	        fetch('/api/room/fixed')
+    	            .then(response => response.json())
+    	            .then(data => {
+    	                joinPrivateRoom(data.roomId, data.password);
+    	            })
+    	            .catch(error => {
+    	                console.error('Error:', error);
+    	                showToast('Failed to join fixed room', 'error');
+    	            });
+    	    } else {
+    	        showToast('Invalid Room ID or Password!', 'error');
+    	    }
+    	}
         // Switch to Private Room UI
         // Switch to Private Room UI
 function switchToPrivateRoom(roomId) {
