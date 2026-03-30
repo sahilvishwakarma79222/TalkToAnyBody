@@ -27,8 +27,8 @@ COPY --from=build /app/target/*.jar app.jar
 # Expose port
 EXPOSE 8080
 
-# Set environment variables for production
-ENV DB_URL="jdbc:h2:file:/app/data/chatapp;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE"
+# Set environment variables for production (fixed URL)
+ENV DB_URL="jdbc:h2:file:/app/data/chatapp;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE"
 ENV CACHE_ENABLED=true
 ENV SQL_SHOW=false
 ENV H2_CONSOLE=false
