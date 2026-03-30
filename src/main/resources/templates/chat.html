@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<!-- Emoji Picker CSS and JS -->
+<!-- WebRTC Adapter (for cross-browser compatibility) -->
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/emoji-mart/css/emoji-mart.css">
+<script src="https://cdn.jsdelivr.net/npm/emoji-mart/dist/emoji-mart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp - Global Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1E1E1E;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Light Theme */
+        body.light-theme {
+            background: #FFFFFF;
+        }
+        
+        body.light-theme .navbar,
+        body.light-theme .sidebar,
+        body.light-theme .chat-header,
+        body.light-theme .input-area {
+            background: #F0F2F5;
+        }
+        
+        body.light-theme .message {
+            background: #FFFFFF;
+            color: #111111;
+        }
+        
+        body.light-theme .user-item {
+            background: #FFFFFF;
+            color: #111111;
+        }
+        
+        body.light-theme .message-input {
+            background: #FFFFFF;
+            color: #111111;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: #2A2A2A;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #3A3A3A;
+        }
+        
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .toggle-sidebar {
+            background: none;
+            border: none;
+            color: #E9EDEF;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        
+        .toggle-sidebar:hover {
+            background: #3A3A3A;
+        }
+        
+        .nav-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #FF4444, #AA00FF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .nav-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .nav-btn {
+            background: #3A3A3A;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: #E9EDEF;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .nav-btn:hover {
+            background: #FF4444;
+            transform: translateY(-1px);
+        }
+        
+        .nav-btn.violet:hover {
+            background: #AA00FF;
+        }
+        
+        .leave-room-btn {
+            background: #FF4444;
+            color: white;
+        }
+        
+        .leave-room-btn:hover {
+            background: #CC3333;
+        }
+        
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .user-info {
+            background: #3A3A3A;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #E9EDEF;
+        }
+        
+        /* Main Layout */
+        .main-layout {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: #2A2A2A;
+            border-right: 1px solid #3A3A3A;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar.hidden {
+            transform: translateX(-100%);
+            position: absolute;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #3A3A3A;
+        }
+        
+        .sidebar-header h3 {
+            color: #E9EDEF;
+            margin-bottom: 5px;
+        }
+        
+        .room-badge {
+            font-size: 0.75rem;
+            color: #AA00FF;
+            background: rgba(170,0,255,0.1);
+            padding: 4px 8px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+        
+        .users-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .user-item {
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 5px;
+            background: #3A3A3A;
+            color: #E9EDEF;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .user-item:hover {
+            background: #4A4A4A;
+        }
+        
+        .user-name {
+            font-weight: 500;
+        }
+        
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1E1E1E;
+        }
+        
+        .chat-header {
+            padding: 15px 20px;
+            background: #2A2A2A;
+            border-bottom: 1px solid #3A3A3A;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #E9EDEF;
+        }
+        
+        .room-id-display {
+            font-size: 0.8rem;
+            color: #AA00FF;
+            margin-left: 10px;
+        }
+        
+        .call-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .call-btn {
+            background: #3A3A3A;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: #E9EDEF;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .call-btn:hover {
+            background: #AA00FF;
+        }
+        
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .message {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            background: #2A2A2A;
+            color: #E9EDEF;
+        }
+        
+        .message.own {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #FF4444, #AA00FF);
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.75rem;
+        }
+        
+        .message-sender {
+            font-weight: bold;
+            color: #FF4444;
+        }
+        
+        .message.own .message-sender {
+            color: #FFFFFF;
+        }
+        
+        .message-time {
+            color: #A0A0A0;
+            font-size: 0.7rem;
+        }
+        
+        .message-content {
+            word-wrap: break-word;
+        }
+        
+        /* Input Area */
+        .input-area {
+            padding: 15px 20px;
+            background: #2A2A2A;
+            border-top: 1px solid #3A3A3A;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .input-btn {
+            background: #3A3A3A;
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+        }
+        
+        .input-btn:hover {
+            background: #FF4444;
+            transform: scale(1.05);
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 10px 15px;
+            background: #3A3A3A;
+            border: none;
+            border-radius: 25px;
+            color: #E9EDEF;
+            font-size: 1rem;
+        }
+        
+        .message-input:focus {
+            outline: none;
+            background: #4A4A4A;
+        }
+        
+        .send-btn {
+            background: linear-gradient(135deg, #FF4444, #AA00FF);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #2A2A2A;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #FF4444;
+            border-radius: 3px;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: #2A2A2A;
+            padding: 30px;
+            border-radius: 20px;
+            min-width: 300px;
+            max-width: 500px;
+        }
+        
+        .modal-content h3 {
+            color: #E9EDEF;
+            margin-bottom: 20px;
+        }
+        
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background: #3A3A3A;
+            border: 1px solid #4A4A4A;
+            border-radius: 8px;
+            color: #E9EDEF;
+        }
+        
+        .modal-content button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .modal-btn-primary {
+            background: #FF4444;
+            color: white;
+        }
+        
+        .modal-btn-secondary {
+            background: #3A3A3A;
+            color: #E9EDEF;
+        }
+        
+        /* Toast Message */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2A2A2A;
+            color: #E9EDEF;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border-left: 3px solid #FF4444;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .toast.success {
+            border-left-color: #4CAF50;
+        }
+        
+        .toast.error {
+            border-left-color: #FF4444;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Invite Modal */
+        .invite-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2A2A2A;
+            padding: 20px;
+            border-radius: 12px;
+            z-index: 2000;
+            min-width: 300px;
+        }
+        
+        .invite-users-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        
+        .invite-user-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #3A3A3A;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .invite-user-item:hover {
+            background: #FF4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="nav-left">
+            <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+            <div class="nav-title">💬 ChatApp</div>
+        </div>
+        <div class="nav-right">
+            <button class="nav-btn" onclick="showCreateRoomModal()">➕ Create Space</button>
+            <button class="nav-btn" onclick="showJoinRoomModal()">🔗 Join Space</button>
+            <button class="nav-btn violet" onclick="joinFixedRoom()">⭐ Fixed Space</button>
+            <button id="leaveRoomBtn" class="nav-btn leave-room-btn" style="display: none;" onclick="leaveRoom()">🚪 Leave Room</button>
+            <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+            <div class="user-info" th:text="${username}"></div>
+        </div>
+    </div>
+    
+    <div class="main-layout">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>Chats</h3>
+                <span class="room-badge" id="roomBadge">Global Chat</span>
+            </div>
+            <div class="users-list" id="usersList">
+                <div class="user-item">
+                    <div class="user-name">Loading users...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-area">
+            <div class="chat-header">
+                <div class="chat-title" id="chatTitle">Global Chat</div>
+                <div class="call-controls" id="callControls" style="display: none;">
+    <button class="call-btn" onclick="startAudioCall()">🎤 Audio Call</button>
+    <button class="call-btn" onclick="startVideoCall()">📹 Video Call</button>
+</div>
+            </div>
+            
+            <div class="messages-container" id="messages">
+                <div class="message">
+                    <div class="message-header">
+                        <span class="message-sender">System</span>
+                        <span class="message-time">Now</span>
+                    </div>
+                    <div class="message-content">✨ Welcome to ChatApp! Start chatting...</div>
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <button class="input-btn" onclick="openEmojiPicker()">😊</button>
+                <button class="input-btn" onclick="uploadImage()">📷</button>
+                <input type="text" class="message-input" id="messageInput" placeholder="Type a message...">
+                <button class="send-btn" onclick="sendMessage()">📤 Send</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div id="createRoomModal" class="modal">
+        <div class="modal-content">
+            <h3>Create Private Space</h3>
+            <input type="password" id="roomPassword" placeholder="Set room password">
+            <button class="modal-btn-primary" onclick="createRoom()">Create</button>
+            <button class="modal-btn-secondary" onclick="closeModal('createRoomModal')">Cancel</button>
+        </div>
+    </div>
+    
+    <div id="joinRoomModal" class="modal">
+        <div class="modal-content">
+            <h3>Join Private Space</h3>
+            <input type="text" id="joinRoomId" placeholder="Room ID">
+            <input type="password" id="joinRoomPass" placeholder="Password">
+            <button class="modal-btn-primary" onclick="joinRoom()">Join</button>
+            <button class="modal-btn-secondary" onclick="closeModal('joinRoomModal')">Cancel</button>
+        </div>
+    </div>
+    
+    <div id="inviteModal" class="modal">
+        <div class="modal-content">
+            <h3>Invite User</h3>
+            <div id="inviteUsersList" class="invite-users-list">Loading users...</div>
+            <button class="modal-btn-secondary" onclick="closeModal('inviteModal')">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- WebSocket Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        let currentRoomType = 'GLOBAL';
+        let currentRoomId = null;
+        let userId = /*[[${userId}]]*/ null;
+        let username = /*[[${username}]]*/ null;
+        let stompClient = null;
+        let retryCount = 0;
+        /*]]>*/
+    </script>
+    
+    <script>
+        // ============ UI Functions ============
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('hidden');
+        }
+        
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+        }
+        
+        function showCreateRoomModal() {
+            document.getElementById('createRoomModal').style.display = 'flex';
+        }
+        
+        function showJoinRoomModal() {
+            document.getElementById('joinRoomModal').style.display = 'flex';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        function showToast(message, type) {
+            let toast = document.createElement('div');
+            toast.className = 'toast ' + (type || 'info');
+            toast.innerHTML = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        // Create Private Room
+  function createRoom() {
+    let password = document.getElementById('roomPassword').value;
+    if (!password) {
+        showToast('Please enter a password', 'error');
+        return;
+    }
+    
+    showToast('Creating room...', 'info');
+    
+    fetch('/api/room/create?userId=' + userId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showToast(data.error, 'error');
+        } else {
+            showToast('Room created! ID: ' + data.roomId, 'success');
+            
+            let roomDetails = `Room ID: ${data.roomId}\nPassword: ${data.password}`;
+            if (confirm(`Room created successfully!\n\n${roomDetails}\n\nDo you want to copy room details?`)) {
+                navigator.clipboard.writeText(`Room ID: ${data.roomId}\nPassword: ${data.password}`);
+                showToast('Copied to clipboard!', 'success');
+            }
+            
+            // Switch to private room immediately
+            switchToPrivateRoom(data.roomId);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Failed to create room', 'error');
+    });
+    
+    closeModal('createRoomModal');
+    document.getElementById('roomPassword').value = '';
+}
+        
+        
+        // Join Room (from modal)
+        function joinRoom() {
+            let roomId = document.getElementById('joinRoomId').value;
+            let password = document.getElementById('joinRoomPass').value;
+            
+            if (!roomId || !password) {
+                showToast('Please enter Room ID and Password', 'error');
+                return;
+            }
+            
+            joinPrivateRoom(roomId, password);
+            closeModal('joinRoomModal');
+            document.getElementById('joinRoomId').value = '';
+            document.getElementById('joinRoomPass').value = '';
+        }
+        
+        // Join Private Room
+       function joinPrivateRoom(roomId, password) {
+    showToast('Joining room...', 'info');
+    
+    fetch('/api/room/join?userId=' + userId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            roomId: roomId, 
+            password: password 
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showToast(data.error, 'error');
+        } else {
+            showToast('Joined room: ' + roomId, 'success');
+            switchToPrivateRoom(roomId);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Failed to join room', 'error');
+    });
+}
+        
+        // Join Fixed Room
+        function joinFixedRoom() {
+            showToast('Joining fixed room...', 'info');
+            
+            fetch('/api/room/fixed')
+                .then(response => response.json())
+                .then(data => {
+                    joinPrivateRoom(data.roomId, data.password);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Failed to join fixed room', 'error');
+                });
+        }
+        
+        // Switch to Private Room UI
+        // Switch to Private Room UI
+function switchToPrivateRoom(roomId) {
+    console.log('🔄 Switching to private room:', roomId);
+    
+    currentRoomType = 'PRIVATE';
+    currentRoomId = roomId;
+    
+    // Update UI
+    document.getElementById('roomBadge').innerHTML = '🔒 Private Room: ' + roomId;
+    document.getElementById('chatTitle').innerHTML = `Private Room: ${roomId}`;
+    document.getElementById('callControls').style.display = 'flex';
+    document.getElementById('leaveRoomBtn').style.display = 'block';
+    
+    // Clear and load private room messages
+    document.getElementById('messages').innerHTML = '';
+    loadPrivateRoomMessages(roomId);
+    
+    // Subscribe to private room if WebSocket connected
+    if (stompClient && stompClient.connected) {
+        stompClient.subscribe('/topic/room/' + roomId, function(message) {
+            const msg = JSON.parse(message.body);
+            displayMessage(msg);
+        });
+        
+        // Notify server about joining private room
+        stompClient.send("/app/chat.private.join", {}, JSON.stringify({
+            roomId: roomId,
+            userId: userId,
+            username: username
+        }));
+    }
+    
+    // Update user's room in database
+    fetch('/api/user/update-room?userId=' + userId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            roomType: "PRIVATE", 
+            roomId: roomId 
+        })
+    });
+    
+    showToast('You are now in private room: ' + roomId, 'success');
+}
+        
+        // Leave Room
+        function leaveRoom() {
+            if (currentRoomType === 'PRIVATE' && currentRoomId) {
+                fetch('/api/room/leave?userId=' + userId, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ roomId: currentRoomId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    showToast('Left private room', 'success');
+                    switchToGlobalChat();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Failed to leave room', 'error');
+                });
+            }
+        }
+        
+        // Switch to Global Chat
+        function switchToGlobalChat() {
+            currentRoomType = 'GLOBAL';
+            currentRoomId = null;
+            
+            document.getElementById('roomBadge').innerHTML = 'Global Chat';
+            document.getElementById('chatTitle').innerHTML = 'Global Chat';
+            document.getElementById('callControls').style.display = 'none';
+            document.getElementById('leaveRoomBtn').style.display = 'none';
+            
+            loadRecentMessages();
+        }
+        
+        // Load Private Room Messages
+        function loadPrivateRoomMessages(roomId) {
+            fetch('/api/messages/recent?roomType=PRIVATE&roomId=' + roomId + '&limit=50')
+                .then(response => response.json())
+                .then(messages => {
+                    const messagesContainer = document.getElementById('messages');
+                    messagesContainer.innerHTML = '';
+                    
+                    if (messages.length === 0) {
+                        let welcomeDiv = document.createElement('div');
+                        welcomeDiv.className = 'message';
+                        welcomeDiv.innerHTML = `
+                            <div class="message-header">
+                                <span class="message-sender">System</span>
+                                <span class="message-time">Now</span>
+                            </div>
+                            <div class="message-content">🔒 You are now in a private room!</div>
+                        `;
+                        messagesContainer.appendChild(welcomeDiv);
+                    } else {
+                        messages.reverse().forEach(msg => {
+                            let messageDiv = document.createElement('div');
+                            let isOwn = msg.userId === userId;
+                            messageDiv.className = 'message' + (isOwn ? ' own' : '');
+                            messageDiv.innerHTML = `
+                                <div class="message-header">
+                                    <span class="message-sender">${escapeHtml(msg.username)}</span>
+                                    <span class="message-time">${escapeHtml(msg.timestamp)}</span>
+                                </div>
+                                <div class="message-content">${escapeHtml(msg.content)}</div>
+                            `;
+                            messagesContainer.appendChild(messageDiv);
+                        });
+                    }
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                })
+                .catch(error => console.error('Error loading private messages:', error));
+        }
+        
+        // Show Invite Modal
+        function showInviteModal() {
+            fetch('/api/users/online')
+                .then(response => response.json())
+                .then(users => {
+                    const otherUsers = users.filter(u => u.id !== userId);
+                    const container = document.getElementById('inviteUsersList');
+                    
+                    if (otherUsers.length === 0) {
+                        container.innerHTML = '<div>No other users online</div>';
+                    } else {
+                        container.innerHTML = otherUsers.map(user => `
+                            <div class="invite-user-item" onclick="sendInvite('${user.id}', '${escapeHtml(user.username)}')">
+                                ${escapeHtml(user.username)}
+                            </div>
+                        `).join('');
+                    }
+                });
+            
+            document.getElementById('inviteModal').style.display = 'flex';
+        }
+        
+        // Send Invite
+        function sendInvite(toUserId, toUsername) {
+            showToast(`Sending invite to ${toUsername}...`, 'info');
+            
+            fetch('/api/invite/send?userId=' + userId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    roomId: currentRoomId,
+                    toUserId: toUserId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, 'error');
+                } else {
+                    showToast(`Invite sent to ${toUsername}!`, 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Failed to send invite', 'error');
+            });
+            
+            closeModal('inviteModal');
+        }
+        
+        // ============ WebSocket Functions ============
+        
+        function waitForLibraries() {
+            if (typeof Stomp !== 'undefined' && typeof SockJS !== 'undefined') {
+                console.log('✅ Libraries loaded');
+                connectWebSocket();
+            } else if (retryCount < 20) {
+                retryCount++;
+                console.log('Waiting for libraries... attempt ' + retryCount);
+                setTimeout(waitForLibraries, 500);
+            } else {
+                console.error('Failed to load libraries');
+                showToast('Failed to connect. Please refresh the page.', 'error');
+            }
+        }
+        
+        function connectWebSocket() {
+            try {
+                const socket = new SockJS('/ws');
+                stompClient = Stomp.over(socket);
+                stompClient.connect({}, onConnected, onError);
+            } catch (error) {
+                console.error('Connection error:', error);
+                showToast('Connection failed. Retrying...', 'error');
+                setTimeout(connectWebSocket, 5000);
+            }
+        }
+        
+        function onConnected(frame) {
+            console.log('✅ Connected to WebSocket');
+            showToast('Connected to chat!', 'success');
+            
+            // Existing subscriptions...
+            stompClient.subscribe('/topic/global', function(message) {
+                if (currentRoomType === 'GLOBAL') {
+                    const msg = JSON.parse(message.body);
+                    displayMessage(msg);
+                }
+            });
+            
+            stompClient.subscribe('/topic/users', function(users) {
+                const userList = JSON.parse(users.body);
+                updateUsersList(userList);
+            });
+            
+            stompClient.subscribe('/user/' + userId + '/queue/invites', function(invite) {
+                const data = JSON.parse(invite.body);
+                handleInvite(data);
+            });
+            
+            // NEW: Call signaling subscriptions
+            stompClient.subscribe('/user/' + userId + '/queue/call.offer', function(message) {
+                const data = JSON.parse(message.body);
+                handleIncomingCall(data);
+            });
+            
+            stompClient.subscribe('/user/' + userId + '/queue/call.answer', function(message) {
+                const data = JSON.parse(message.body);
+                handleCallAnswer(data);
+            });
+            
+            stompClient.subscribe('/user/' + userId + '/queue/call.ice', function(message) {
+                const data = JSON.parse(message.body);
+                handleIceCandidate(data);
+            });
+            
+            stompClient.subscribe('/user/' + userId + '/queue/call.reject', function(message) {
+                const data = JSON.parse(message.body);
+                handleCallReject(data);
+            });
+            
+            stompClient.subscribe('/user/' + userId + '/queue/call.end', function(message) {
+                const data = JSON.parse(message.body);
+                if (!callInProgress) return;
+                showToast('Call ended by other user', 'info');
+                endCall();
+            });
+            
+            stompClient.send("/app/chat.join", {}, JSON.stringify({
+                content: username + " joined",
+                messageType: "TEXT",
+                username: username
+            }));
+            
+            stompClient.send("/app/chat.users", {}, {});
+            loadRecentMessages();
+        }
+        
+        function onError(error) {
+            console.error('WebSocket error:', error);
+            showToast('Connection lost. Reconnecting...', 'error');
+            setTimeout(connectWebSocket, 5000);
+        }
+        
+        function handleInvite(data) {
+            if (data.type === 'INVITE') {
+                if (confirm(`${data.fromUser} invited you to join a private room!\n\nDo you want to accept?`)) {
+                    acceptInvite(data.inviteId);
+                } else {
+                    rejectInvite(data.inviteId);
+                }
+            } else if (data.type === 'INVITE_ACCEPTED') {
+                showToast('User accepted your invite!', 'success');
+            } else if (data.type === 'INVITE_REJECTED') {
+                showToast('User rejected your invite', 'info');
+            }
+        }
+        
+        function acceptInvite(inviteId) {
+            fetch('/api/invite/accept?userId=' + userId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inviteId: inviteId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.error) {
+                    showToast('Joined room!', 'success');
+                    switchToPrivateRoom(data.roomId);
+                }
+            });
+        }
+        
+        function rejectInvite(inviteId) {
+            fetch('/api/invite/reject?userId=' + userId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inviteId: inviteId })
+            });
+        }
+        
+        function sendMessage() {
+            let input = document.getElementById('messageInput');
+            let content = input.value.trim();
+            if (!content) return;
+            
+            if (!stompClient || !stompClient.connected) {
+                showToast('Not connected. Please wait...', 'error');
+                return;
+            }
+            
+            const message = {
+                content: content,
+                messageType: "TEXT",
+                userId: userId,
+                username: username,
+                roomType: currentRoomType,
+                roomId: currentRoomId
+            };
+            
+            if (currentRoomType === 'PRIVATE') {
+                stompClient.send("/app/chat.private.send", {}, JSON.stringify(message));
+            } else {
+                stompClient.send("/app/chat.send", {}, JSON.stringify(message));
+            }
+            input.value = '';
+        }
+        
+        function displayMessage(message) {
+            let messagesContainer = document.getElementById('messages');
+            let messageDiv = document.createElement('div');
+            let isOwn = message.userId === userId;
+            messageDiv.className = 'message' + (isOwn ? ' own' : '');
+            
+            let contentHtml = '';
+            if (message.messageType === 'IMAGE') {
+                contentHtml = `<img src="${message.imageData || message.content}" style="max-width: 200px; max-height: 200px; border-radius: 12px; cursor: pointer;" onclick="viewFullImage(this.src)">`;
+            } else {
+                contentHtml = `<div class="message-content">${escapeHtml(message.content)}</div>`;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="message-sender">${escapeHtml(message.username)}</span>
+                    <span class="message-time">${escapeHtml(message.timestamp)}</span>
+                </div>
+                ${contentHtml}
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messageDiv.scrollIntoView({ behavior: 'smooth' });
+            
+            while (messagesContainer.children.length > 1000) {
+                messagesContainer.removeChild(messagesContainer.firstChild);
+            }
+        }
+
+        function viewFullImage(imageUrl) {
+            let modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 90%; max-height: 90%;">
+                    <img src="${imageUrl}" style="max-width: 100%; max-height: 80vh; border-radius: 8px;">
+                    <button class="modal-btn-secondary" style="margin-top: 15px;" onclick="this.closest('.modal').remove()">Close</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function updateUsersList(users) {
+            const usersList = document.getElementById('usersList');
+            if (!usersList) return;
+            
+            if (!users || users.length === 0) {
+                usersList.innerHTML = '<div class="user-item"><div class="user-name">No other users online</div></div>';
+                return;
+            }
+            
+            const otherUsers = users.filter(u => u.id !== userId);
+            
+            if (otherUsers.length === 0) {
+                usersList.innerHTML = '<div class="user-item"><div class="user-name">No other users online</div></div>';
+            } else {
+                usersList.innerHTML = otherUsers.map(user => `
+                    <div class="user-item" onclick="showInviteModal()">
+                        <div class="user-name">${escapeHtml(user.username)}</div>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        function loadRecentMessages() {
+            fetch('/api/messages/recent?roomType=GLOBAL&limit=50')
+                .then(response => response.json())
+                .then(messages => {
+                    const messagesContainer = document.getElementById('messages');
+                    messagesContainer.innerHTML = '';
+                    
+                    if (messages.length === 0) {
+                        let welcomeDiv = document.createElement('div');
+                        welcomeDiv.className = 'message';
+                        welcomeDiv.innerHTML = `
+                            <div class="message-header">
+                                <span class="message-sender">System</span>
+                                <span class="message-time">Now</span>
+                            </div>
+                            <div class="message-content">✨ Welcome to ChatApp! Start chatting...</div>
+                        `;
+                        messagesContainer.appendChild(welcomeDiv);
+                    } else {
+                        messages.reverse().forEach(msg => {
+                            let messageDiv = document.createElement('div');
+                            let isOwn = msg.userId === userId;
+                            messageDiv.className = 'message' + (isOwn ? ' own' : '');
+                            messageDiv.innerHTML = `
+                                <div class="message-header">
+                                    <span class="message-sender">${escapeHtml(msg.username)}</span>
+                                    <span class="message-time">${escapeHtml(msg.timestamp)}</span>
+                                </div>
+                                <div class="message-content">${escapeHtml(msg.content)}</div>
+                            `;
+                            messagesContainer.appendChild(messageDiv);
+                        });
+                    }
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                })
+                .catch(error => console.error('Error loading messages:', error));
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            let div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        const emojiList = ['😊', '😂', '❤️', '👍', '🔥', '🎉', '😢', '😡', '😎', '🤔', '🥳', '😍', '🤣', '😭', '😱', '💀', '👋', '🙏', '💯', '✨'];
+        function openEmojiPicker() {
+            // Create emoji picker modal
+            let modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            
+            let emojiButtons = emojiList.map(emoji => 
+                `<button onclick="insertEmoji('${emoji}')" style="margin: 5px; padding: 10px 15px; font-size: 24px; background: #3A3A3A; border: none; border-radius: 8px; cursor: pointer;">${emoji}</button>`
+            ).join('');
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 450px;">
+                    <h3>Choose Emoji</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 5px; margin: 15px 0;">${emojiButtons}</div>
+                    <button class="modal-btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        function insertEmoji(emoji) {
+            let input = document.getElementById('messageInput');
+            input.value += emoji;
+            input.focus();
+            
+            // Close modal
+            let modal = document.querySelector('.modal');
+            if (modal) modal.remove();
+        }
+     // Image Upload
+        function uploadImage() {
+            let input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            
+            input.onchange = function(e) {
+                let file = e.target.files[0];
+                if (!file) return;
+                
+                // Check file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    showToast('Image size should be less than 5MB', 'error');
+                    return;
+                }
+                
+                // Check if image
+                if (!file.type.startsWith('image/')) {
+                    showToast('Please select an image file', 'error');
+                    return;
+                }
+                
+                // Read and preview
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let imageData = e.target.result;
+                    
+                    // Create preview modal
+                    let modal = document.createElement('div');
+                    modal.className = 'modal';
+                    modal.style.display = 'flex';
+                    modal.innerHTML = `
+                        <div class="modal-content" style="max-width: 500px;">
+                            <h3>Preview Image</h3>
+                            <img src="${imageData}" style="max-width: 100%; max-height: 300px; margin: 15px 0; border-radius: 8px;">
+                            <p style="color: #A0A0A0; margin-bottom: 15px;">${file.name} (${(file.size / 1024).toFixed(1)} KB)</p>
+                            <div>
+                                <button class="modal-btn-primary" onclick="sendImage('${imageData}')">Send</button>
+                                <button class="modal-btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                };
+                reader.readAsDataURL(file);
+            };
+            
+            input.click();
+        }
+
+        function sendImage(imageData) {
+            // Close preview modal
+            let modal = document.querySelector('.modal');
+            if (modal) modal.remove();
+            
+            if (!stompClient || !stompClient.connected) {
+                showToast('Not connected. Please wait...', 'error');
+                return;
+            }
+            
+            let message = {
+                content: "📷 Image",
+                messageType: "IMAGE",
+                userId: userId,
+                username: username,
+                roomType: currentRoomType,
+                roomId: currentRoomId,
+                imageData: imageData
+            };
+            
+            if (currentRoomType === 'PRIVATE') {
+                stompClient.send("/app/chat.private.send", {}, JSON.stringify(message));
+            } else {
+                stompClient.send("/app/chat.send", {}, JSON.stringify(message));
+            }
+            
+            showToast('Image sent!', 'success');
+        }
+        
+        function startAudioCall() {
+            showToast('Audio call - Coming soon!', 'info');
+        }
+        
+        function startVideoCall() {
+            showToast('Video call - Coming soon!', 'info');
+        }
+        
+        window.addEventListener('beforeunload', function() {
+            if (stompClient && stompClient.connected) {
+                stompClient.send("/app/chat.leave", {}, {});
+                stompClient.disconnect();
+            }
+        });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, User ID:', userId, 'Username:', username);
+            
+            if (userId && username) {
+                waitForLibraries();
+            } else {
+                console.error('User not logged in');
+                window.location.href = '/';
+            }
+            
+            const msgInput = document.getElementById('messageInput');
+            if (msgInput) {
+                msgInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+            }
+        });
+        
+     // ============ WebRTC Call Functions ============
+
+        let peerConnection = null;
+        let localStream = null;
+        let remoteStream = null;
+        let callType = null; // 'audio' or 'video'
+        let callActive = false;
+        let callInProgress = false;
+
+        // Configuration for STUN servers (free)
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        // Start Audio Call
+        function startAudioCall() {
+            if (currentRoomType !== 'PRIVATE') {
+                showToast('Calls are only available in private rooms!', 'error');
+                return;
+            }
+            startCall('audio');
+        }
+
+        // Start Video Call
+        function startVideoCall() {
+            if (currentRoomType !== 'PRIVATE') {
+                showToast('Calls are only available in private rooms!', 'error');
+                return;
+            }
+            startCall('video');
+        }
+
+        // Start Call
+        async function startCall(type) {
+            if (callInProgress) {
+                showToast('Call already in progress!', 'error');
+                return;
+            }
+            
+            callType = type;
+            callInProgress = true;
+            
+            try {
+                // Get user media
+                const constraints = type === 'video' 
+                    ? { audio: true, video: true }
+                    : { audio: true, video: false };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                // Show local video if video call
+                if (type === 'video') {
+                    document.getElementById('localVideoElement').srcObject = localStream;
+                    document.getElementById('localVideo').style.display = 'block';
+                }
+                
+                // Create peer connection
+                createPeerConnection();
+                
+                // Add tracks
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                // Create offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                // Send offer to other user
+                stompClient.send("/app/call.offer", {}, JSON.stringify({
+                    roomId: currentRoomId,
+                    fromUserId: userId,
+                    fromUsername: username,
+                    callType: callType,
+                    offer: offer
+                }));
+                
+                showToast(`Calling...`, 'info');
+                
+                // Show call modal
+                showCallModal('Calling...', 'Waiting for response...');
+                
+            } catch (error) {
+                console.error('Error starting call:', error);
+                showToast('Failed to start call. Check camera/mic permissions.', 'error');
+                endCall();
+            }
+        }
+
+        // Create Peer Connection
+        function createPeerConnection() {
+            peerConnection = new RTCPeerConnection(configuration);
+            
+            // Handle ICE candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    stompClient.send("/app/call.ice", {}, JSON.stringify({
+                        roomId: currentRoomId,
+                        fromUserId: userId,
+                        candidate: event.candidate
+                    }));
+                }
+            };
+            
+            // Handle remote stream
+            peerConnection.ontrack = (event) => {
+                remoteStream = event.streams[0];
+                
+                if (callType === 'video') {
+                    const remoteVideo = document.getElementById('remoteVideoElement');
+                    remoteVideo.srcObject = remoteStream;
+                    document.getElementById('remoteVideo').style.display = 'block';
+                } else {
+                    // For audio only, create audio element
+                    const audio = new Audio();
+                    audio.srcObject = remoteStream;
+                    audio.play();
+                }
+                
+                callActive = true;
+                updateCallControls();
+            };
+            
+            // Handle connection state
+            peerConnection.onconnectionstatechange = () => {
+                if (peerConnection.connectionState === 'connected') {
+                    showToast('Call connected!', 'success');
+                    callActive = true;
+                    updateCallControls();
+                } else if (peerConnection.connectionState === 'disconnected' || 
+                           peerConnection.connectionState === 'failed') {
+                    showToast('Call ended', 'info');
+                    endCall();
+                }
+            };
+        }
+
+        // Handle Incoming Call (from WebSocket)
+        function handleIncomingCall(data) {
+            if (callInProgress) {
+                // Busy, reject call
+                stompClient.send("/app/call.reject", {}, JSON.stringify({
+                    roomId: data.roomId,
+                    toUserId: data.fromUserId,
+                    reason: 'busy'
+                }));
+                return;
+            }
+            
+            callType = data.callType;
+            callInProgress = true;
+            
+            // Store offer for later
+            window.pendingOffer = data.offer;
+            window.callerId = data.fromUserId;
+            window.callerName = data.fromUsername;
+            
+            // Show incoming call modal
+            const modal = document.getElementById('callModal');
+            document.getElementById('callModalTitle').innerHTML = '📞 Incoming Call';
+            document.getElementById('callerInfo').innerHTML = `${data.fromUsername} is calling you (${data.callType === 'video' ? 'Video' : 'Audio'} call)`;
+            document.getElementById('acceptCallBtn').style.display = 'inline-block';
+            document.getElementById('rejectCallBtn').style.display = 'inline-block';
+            document.getElementById('endCallBtn').style.display = 'none';
+            document.getElementById('muteCallBtn').style.display = 'none';
+            document.getElementById('localVideo').style.display = 'none';
+            document.getElementById('remoteVideo').style.display = 'none';
+            modal.style.display = 'flex';
+            
+            // Setup accept button
+            document.getElementById('acceptCallBtn').onclick = () => acceptCall();
+            document.getElementById('rejectCallBtn').onclick = () => rejectCall();
+        }
+
+        // Accept Call
+        async function acceptCall() {
+            const modal = document.getElementById('callModal');
+            modal.style.display = 'none';
+            
+            try {
+                // Get user media
+                const constraints = callType === 'video' 
+                    ? { audio: true, video: true }
+                    : { audio: true, video: false };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                if (callType === 'video') {
+                    document.getElementById('localVideoElement').srcObject = localStream;
+                    document.getElementById('localVideo').style.display = 'block';
+                }
+                
+                // Create peer connection
+                createPeerConnection();
+                
+                // Add tracks
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                // Set remote description (offer)
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(window.pendingOffer));
+                
+                // Create answer
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                
+                // Send answer
+                stompClient.send("/app/call.answer", {}, JSON.stringify({
+                    roomId: currentRoomId,
+                    toUserId: window.callerId,
+                    answer: answer
+                }));
+                
+                showToast('Call connected!', 'success');
+                callActive = true;
+                updateCallControls();
+                
+            } catch (error) {
+                console.error('Error accepting call:', error);
+                showToast('Failed to accept call', 'error');
+                endCall();
+            }
+        }
+
+        // Reject Call
+        function rejectCall() {
+            const modal = document.getElementById('callModal');
+            modal.style.display = 'none';
+            
+            stompClient.send("/app/call.reject", {}, JSON.stringify({
+                roomId: currentRoomId,
+                toUserId: window.callerId,
+                reason: 'rejected'
+            }));
+            
+            callInProgress = false;
+            showToast('Call rejected', 'info');
+        }
+
+        // Handle Call Answer
+        function handleCallAnswer(data) {
+            if (peerConnection && peerConnection.remoteDescription === null) {
+                peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                showToast('Call connected!', 'success');
+                updateCallControls();
+            }
+        }
+
+        // Handle ICE Candidate
+        function handleIceCandidate(data) {
+            if (peerConnection) {
+                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        }
+
+        // Handle Call Reject
+        function handleCallReject(data) {
+            showToast(`${data.fromUsername || 'User'} rejected your call`, 'info');
+            endCall();
+        }
+
+        // End Call
+        function endCall() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            remoteStream = null;
+            callActive = false;
+            callInProgress = false;
+            callType = null;
+            
+            // Hide video elements
+            document.getElementById('localVideo').style.display = 'none';
+            document.getElementById('remoteVideo').style.display = 'none';
+            
+            // Hide call modal
+            const modal = document.getElementById('callModal');
+            modal.style.display = 'none';
+            
+            // Notify other user if call was active
+            if (callActive && stompClient && stompClient.connected) {
+                stompClient.send("/app/call.end", {}, JSON.stringify({
+                    roomId: currentRoomId,
+                    fromUserId: userId
+                }));
+            }
+            
+            showToast('Call ended', 'info');
+        }
+
+        // Mute/Unmute Call
+        let isMuted = false;
+        function toggleMute() {
+            if (localStream) {
+                const audioTracks = localStream.getAudioTracks();
+                audioTracks.forEach(track => {
+                    track.enabled = !track.enabled;
+                });
+                isMuted = !isMuted;
+                const muteBtn = document.getElementById('muteCallBtn');
+                muteBtn.innerHTML = isMuted ? '🔇 Unmute' : '🔊 Mute';
+                showToast(isMuted ? 'Microphone muted' : 'Microphone unmuted', 'info');
+            }
+        }
+
+        // Show Call Modal
+        function showCallModal(title, message) {
+            const modal = document.getElementById('callModal');
+            document.getElementById('callModalTitle').innerHTML = title;
+            document.getElementById('callerInfo').innerHTML = message;
+            document.getElementById('acceptCallBtn').style.display = 'none';
+            document.getElementById('rejectCallBtn').style.display = 'none';
+            document.getElementById('endCallBtn').style.display = 'inline-block';
+            document.getElementById('muteCallBtn').style.display = 'inline-block';
+            document.getElementById('muteCallBtn').onclick = toggleMute;
+            document.getElementById('endCallBtn').onclick = endCall;
+            modal.style.display = 'flex';
+        }
+
+        // Update Call Controls UI
+        function updateCallControls() {
+            const modal = document.getElementById('callModal');
+            document.getElementById('callModalTitle').innerHTML = '📞 Call in Progress';
+            document.getElementById('callerInfo').innerHTML = 'Connected';
+            document.getElementById('acceptCallBtn').style.display = 'none';
+            document.getElementById('rejectCallBtn').style.display = 'none';
+            document.getElementById('endCallBtn').style.display = 'inline-block';
+            document.getElementById('muteCallBtn').style.display = 'inline-block';
+            modal.style.display = 'flex';
+        }
+        
+    </script>
+    <!-- Emoji Picker Container -->
+<div id="emojiPickerContainer" style="position: absolute; bottom: 80px; left: 20px; display: none; z-index: 1000;"></div>
+<!-- Hidden file input for image upload -->
+<input type="file" id="imageInput" accept="image/*" style="display: none;">
+
+<!-- Call Modal -->
+<div id="callModal" class="modal">
+    <div class="modal-content" style="max-width: 600px; text-align: center;">
+        <h3 id="callModalTitle">Incoming Call</h3>
+        <div id="callerInfo" style="margin: 20px 0;"></div>
+        <div id="localVideo" style="margin: 10px 0; display: none;">
+            <video id="localVideoElement" autoplay muted style="width: 100%; max-height: 300px; border-radius: 12px;"></video>
+        </div>
+        <div id="remoteVideo" style="margin: 10px 0; display: none;">
+            <video id="remoteVideoElement" autoplay style="width: 100%; max-height: 300px; border-radius: 12px;"></video>
+        </div>
+        <div id="callControls" style="margin-top: 20px;">
+            <button id="acceptCallBtn" class="modal-btn-primary" style="background: #4CAF50;">Accept</button>
+            <button id="rejectCallBtn" class="modal-btn-secondary">Reject</button>
+            <button id="endCallBtn" class="modal-btn-primary" style="background: #FF4444; display: none;">End Call</button>
+            <button id="muteCallBtn" class="modal-btn-secondary" style="display: none;">🔊 Mute</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
