@@ -21,11 +21,12 @@ public class ChatApplication implements ApplicationRunner {
 		
 	}
 
-	@Override
-	public void run(ApplicationArguments args) throws Exception {
-		 System.out.println("🚀 Chat Application Started!");
-	        roomService.cleanupAllStaleParticipants();
-	        System.out.println("📍 App URL: http://localhost:8082");		
-	}
+	
+	 @Override
+	    public void run(ApplicationArguments args) throws Exception {
+	        System.out.println("🚀 Startup cleanup skipped (temporarily disabled)");
+	        // Comment out or remove the cleanup call
+	        // roomService.cleanupAllStaleParticipants();
+	    }
 
 }

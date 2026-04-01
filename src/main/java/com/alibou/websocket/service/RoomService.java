@@ -193,20 +193,30 @@ public class RoomService {
     @Transactional
     public void cleanupAllStaleParticipants() {
         System.out.println("🧹 Running full stale participant cleanup...");
-        
-        // Delete all participants for users that don't exist
-        participantRepository.deleteOrphanParticipants();
-        
-        // Delete participants for inactive users
-        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(2);
-        List<User> inactiveUsers = userRepository.findInactiveUsers(cutoff);
-        
-        for (User user : inactiveUsers) {
-            forceLeaveAllRooms(user.getId());
+        try {
+            participantRepository.deleteOrphanParticipants();
+            System.out.println("   Orphan participants deleted");
+        } catch (Exception e) {
+            System.out.println("   Error deleting orphans: " + e.getMessage());
         }
         
-        // Clean empty rooms
-        roomRepository.deleteEmptyRoomsNative();
+        try {
+            LocalDateTime cutoff = LocalDateTime.now().minusMinutes(2);
+            List<User> inactiveUsers = userRepository.findInactiveUsers(cutoff);
+            for (User user : inactiveUsers) {
+                forceLeaveAllRooms(user.getId());
+            }
+            System.out.println("   Inactive users cleaned: " + inactiveUsers.size());
+        } catch (Exception e) {
+            System.out.println("   Error cleaning inactive users: " + e.getMessage());
+        }
+        
+        try {
+            roomRepository.deleteEmptyRoomsNative();
+            System.out.println("   Empty rooms deleted");
+        } catch (Exception e) {
+            System.out.println("   Error deleting empty rooms: " + e.getMessage());
+        }
         
         System.out.println("✅ Stale participant cleanup completed");
     }
