@@ -383,9 +383,9 @@ public class ChatController {
         messagingTemplate.convertAndSendToUser(sessionId, "/queue/pong", "pong");
     }
     
-    @MessageMapping("/ping")
-    public void handlePing() {
-        // Just respond to keep connection alive
-        System.out.println("💓 Ping received");
-    }
+//    @MessageMapping("/ping")
+//    public void handlePing() {
+//        // Just respond to keep connection alive
+//        System.out.println("💓 Ping received");
+//    }
 }
