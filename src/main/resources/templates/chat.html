@@ -933,37 +933,22 @@
                 return;
             }
             
-            // Show modal to get peer ID
-            let modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'flex';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 350px;">
-                    <h3>📹 Start Video Call</h3>
-                    <p style="margin-bottom: 15px; color: var(--text-secondary);">Enter the other user's Peer ID:</p>
-                    <input type="text" id="targetPeerId" placeholder="Peer ID" style="width: 100%; margin-bottom: 15px;">
-                    <div>
-                        <button class="modal-btn-primary" id="callStartBtn">Call</button>
-                        <button class="modal-btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
-                    </div>
-                    <p style="margin-top: 15px; font-size: 0.75rem; color: var(--text-secondary);">Your Peer ID: <strong id="myPeerId">${peer.id || 'loading...'}</strong></p>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            
-            document.getElementById('callStartBtn').onclick = () => {
-                let targetId = document.getElementById('targetPeerId').value.trim();
-                modal.remove();
-                
-                if (!targetId) {
-                    showToast('Please enter Peer ID', 'error');
-                    return;
-                }
-                
-                makeCall(targetId);
-            };
+            // ✅ Auto call if other user's Peer ID is available
+            if (otherUserPeerId) {
+                showToast('Starting call...', 'info');
+                makeCall(otherUserPeerId);
+            } else {
+                // Fallback - show modal if ID not available
+                showToast('Waiting for other user to be ready...', 'info');
+                setTimeout(() => {
+                    if (otherUserPeerId) {
+                        startVideoCall();
+                    } else {
+                        showToast('Other user not ready yet. Try again.', 'error');
+                    }
+                }, 2000);
+            }
         }
-        
         function makeCall(targetPeerId) {
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then((stream) => {
@@ -1010,13 +995,15 @@
             });
         }
         
-        // Handle peer ready messages
+        let otherUserPeerId = null;
+
+     // Modify handlePeerMessage function
         function handlePeerMessage(content) {
             if (content.startsWith('🎥 PEER_READY:')) {
                 const peerId = content.split(':')[1];
-                showToast(`User is ready for video call! Peer ID: ${peerId}`, 'info');
-                // Store for later use
-                window.otherUserPeerId = peerId;
+                otherUserPeerId = peerId;
+                console.log('✅ Other user ready, Peer ID:', peerId);
+                showToast('Other user is ready for video call!', 'success');
             }
         }
         
