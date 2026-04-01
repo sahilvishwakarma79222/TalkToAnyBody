@@ -621,9 +621,10 @@
         let callDurationInterval = null;
         let isCallMinimized = false;
         
-        // ✅ Toast dedup flag
         let lastToastMessage = null;
         let lastToastTime = 0;
+        let pendingIceCandidates = [];
+        let isEndingCall = false;
         /*]]>*/
     </script>
     
@@ -649,12 +650,9 @@
             }
         }
         
-        // ✅ Fixed toast with dedup - prevents infinite toasts
         function showToast(message, type) {
             const now = Date.now();
-            if (lastToastMessage === message && now - lastToastTime < 2000) {
-                return; // Same message within 2 seconds, ignore
-            }
+            if (lastToastMessage === message && now - lastToastTime < 2000) return;
             lastToastMessage = message;
             lastToastTime = now;
             
@@ -729,23 +727,15 @@
             .catch(error => { showToast(error.message || 'Failed to join room', 'error'); });
         }
         
-        // ✅ FIXED: Join Fixed Room - First leave any existing private room
         function joinFixedRoom() {
-            // ✅ First, if user is in any private room, leave it
             if (currentRoomType === 'PRIVATE' && currentRoomId) {
                 showToast('Leaving current private room...', 'info');
                 fetch('/api/room/leave?userId=' + userId, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ roomId: currentRoomId })
                 })
-                .then(() => {
-                    // After leaving, switch to global then show fixed room modal
-                    switchToGlobalChat();
-                    showFixedRoomModal();
-                })
-                .catch(() => {
-                    showFixedRoomModal();
-                });
+                .then(() => { switchToGlobalChat(); showFixedRoomModal(); })
+                .catch(() => { showFixedRoomModal(); });
             } else {
                 showFixedRoomModal();
             }
@@ -791,30 +781,21 @@
                     fetch('/api/room/fixed')
                         .then(response => response.json())
                         .then(data => {
-                            if (data.roomId) {
-                                joinPrivateRoom(data.roomId, data.password);
-                            } else {
-                                showToast('Failed to join fixed room', 'error');
-                            }
+                            if (data.roomId) joinPrivateRoom(data.roomId, data.password);
+                            else showToast('Failed to join fixed room', 'error');
                         })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            showToast('Failed to join fixed room', 'error');
-                        });
+                        .catch(error => { showToast('Failed to join fixed room', 'error'); });
                 } else {
                     showToast('Invalid Room ID or Password!', 'error');
                 }
             };
         }
         
-        function closeFixedRoomModal(btn) {
-            let modal = btn.closest('.modal');
-            if (modal) modal.remove();
-        }
+        function closeFixedRoomModal(btn) { btn.closest('.modal').remove(); }
         
         function switchToPrivateRoom(roomId) {
             if (!stompClient || !stompClient.connected) {
-                showToast('Connecting to chat server...', 'info');
+                showToast('Connecting...', 'info');
                 setTimeout(() => { if (stompClient?.connected) switchToPrivateRoom(roomId); }, 1000);
                 return;
             }
@@ -980,35 +961,34 @@
             document.addEventListener('mouseup', dragEnd);
         }
         
-        // ============ WebRTC Call Functions ==========
-// ✅ Production-ready STUN/TURN servers
-const configuration = {
-    iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        // Public TURN servers (for NAT traversal)
-        {
-            urls: 'turn:openrelay.metered.ca:80',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-        },
-        {
-            urls: 'turn:openrelay.metered.ca:443',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-        },
-        {
-            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-        }
-    ],
-    iceCandidatePoolSize: 10,
-    iceTransportPolicy: 'all'
-};	        
+        // ============ PRODUCTION-READY WebRTC Call Functions ==========
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                {
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
+            ],
+            iceCandidatePoolSize: 10,
+            iceTransportPolicy: 'all'
+        };
+        
         function startAudioCall() {
             if (currentRoomType !== 'PRIVATE') { showToast('Calls only in private rooms!', 'error'); return; }
             startCall('audio');
@@ -1024,10 +1004,15 @@ const configuration = {
             
             callType = type;
             callInProgress = true;
+            pendingIceCandidates = [];
             
             try {
-                const constraints = type === 'video' ? { audio: true, video: true } : { audio: true, video: false };
+                const constraints = type === 'video' 
+                    ? { audio: true, video: { width: { ideal: 640 }, height: { ideal: 480 } } }
+                    : { audio: true, video: false };
+                
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('✅ Got local stream');
                 
                 if (type === 'video') {
                     document.getElementById('localVideoFloating').srcObject = localStream;
@@ -1042,15 +1027,29 @@ const configuration = {
                 makeDraggable();
                 
                 createPeerConnection();
-                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                    console.log('✅ Added track:', track.kind);
+                });
                 
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
+                console.log('✅ Created offer');
                 
                 stompClient.send("/app/call.offer", {}, JSON.stringify({
                     roomId: currentRoomId, fromUserId: userId, fromUsername: username,
                     callType: callType, offer: offer
                 }));
+                
+                // Timeout for call connection
+                setTimeout(() => {
+                    if (!callActive && callInProgress) {
+                        console.log('⏰ Call timeout');
+                        showToast('Call timed out. User may be offline.', 'error');
+                        endCall();
+                    }
+                }, 30000);
                 
             } catch (error) {
                 console.error('Error starting call:', error);
@@ -1061,34 +1060,63 @@ const configuration = {
         
         function createPeerConnection() {
             peerConnection = new RTCPeerConnection(configuration);
+            console.log('✅ Created peer connection');
             
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
+                    console.log('📡 ICE candidate:', event.candidate.type);
                     stompClient.send("/app/call.ice", {}, JSON.stringify({
                         roomId: currentRoomId, fromUserId: userId, candidate: event.candidate
                     }));
+                } else {
+                    console.log('✅ ICE gathering complete');
                 }
             };
             
             peerConnection.ontrack = (event) => {
+                console.log('📺 Received remote track:', event.track.kind);
                 remoteStream = event.streams[0];
                 const remoteVideo = document.getElementById('remoteVideoFloating');
                 remoteVideo.srcObject = remoteStream;
+                remoteVideo.play().catch(e => console.log('Video play error:', e));
+                
                 callActive = true;
                 document.getElementById('callStatus').innerHTML = 'Connected';
                 startCallDuration();
+                console.log('✅ Call connected!');
             };
             
             peerConnection.onconnectionstatechange = () => {
+                console.log('🔄 Connection state:', peerConnection.connectionState);
                 if (peerConnection.connectionState === 'connected') {
                     showToast('Call connected!', 'success');
-                } else if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
+                } else if (peerConnection.connectionState === 'failed') {
+                    showToast('Call failed. Please try again.', 'error');
                     endCall();
                 }
             };
+            
+            peerConnection.oniceconnectionstatechange = () => {
+                console.log('🧊 ICE state:', peerConnection.iceConnectionState);
+                if (peerConnection.iceConnectionState === 'failed') {
+                    console.log('❌ ICE failed');
+                    showToast('Connection issue. Please try again.', 'error');
+                    endCall();
+                }
+            };
+            
+            // Add any pending ICE candidates
+            if (pendingIceCandidates.length > 0) {
+                pendingIceCandidates.forEach(candidate => {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                });
+                pendingIceCandidates = [];
+            }
         }
         
         function handleIncomingCall(data) {
+            console.log('📞 Incoming call from:', data.fromUsername);
+            
             if (callInProgress || callActive) {
                 stompClient.send("/app/call.reject", {}, JSON.stringify({
                     roomId: data.roomId, toUserId: data.fromUserId, reason: 'busy'
@@ -1098,6 +1126,7 @@ const configuration = {
             
             callType = data.callType;
             callInProgress = true;
+            pendingIceCandidates = [];
             
             window.pendingOffer = data.offer;
             window.callerId = data.fromUserId;
@@ -1119,14 +1148,20 @@ const configuration = {
         }
         
         async function acceptCall() {
+            console.log('✅ Accepting call');
+            
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
             }
             
             try {
-                const constraints = callType === 'video' ? { audio: true, video: true } : { audio: true, video: false };
+                const constraints = callType === 'video' 
+                    ? { audio: true, video: { width: { ideal: 640 }, height: { ideal: 480 } } }
+                    : { audio: true, video: false };
+                
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('✅ Got local stream for answer');
                 
                 if (callType === 'video') {
                     document.getElementById('localVideoFloating').srcObject = localStream;
@@ -1134,18 +1169,31 @@ const configuration = {
                 }
                 
                 createPeerConnection();
-                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
                 
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(window.pendingOffer));
+                console.log('✅ Set remote description');
+                
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
+                console.log('✅ Created answer');
                 
                 stompClient.send("/app/call.answer", {}, JSON.stringify({
                     roomId: currentRoomId, toUserId: window.callerId, answer: answer
                 }));
                 
-                document.getElementById('callStatus').innerHTML = 'Connected';
-                startCallDuration();
+                document.getElementById('callStatus').innerHTML = 'Connecting...';
+                
+                setTimeout(() => {
+                    if (!callActive && callInProgress) {
+                        console.log('⏰ Connection timeout');
+                        showToast('Connection failed. Please try again.', 'error');
+                        endCall();
+                    }
+                }, 30000);
                 
                 const muteBtn = document.getElementById('floatingMuteBtn');
                 muteBtn.innerHTML = '🔊';
@@ -1155,12 +1203,13 @@ const configuration = {
                 
             } catch (error) {
                 console.error('Error accepting call:', error);
-                showToast('Failed to accept call', 'error');
+                showToast('Failed to accept call: ' + error.message, 'error');
                 endCall();
             }
         }
         
         function rejectCall() {
+            console.log('❌ Rejecting call');
             stompClient.send("/app/call.reject", {}, JSON.stringify({
                 roomId: currentRoomId, toUserId: window.callerId, reason: 'rejected'
             }));
@@ -1168,24 +1217,30 @@ const configuration = {
         }
         
         function handleCallAnswer(data) {
+            console.log('📞 Received answer');
             if (peerConnection && peerConnection.remoteDescription === null) {
                 peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                document.getElementById('callStatus').innerHTML = 'Connected';
-                startCallDuration();
+                console.log('✅ Set remote answer');
+                document.getElementById('callStatus').innerHTML = 'Connecting...';
             }
         }
         
         function handleIceCandidate(data) {
-            if (peerConnection) { peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); }
+            console.log('🧊 Received ICE candidate:', data.candidate.type);
+            if (peerConnection && peerConnection.remoteDescription) {
+                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            } else {
+                pendingIceCandidates.push(data.candidate);
+                console.log('📦 Queued ICE candidate');
+            }
         }
         
         function handleCallReject(data) {
+            console.log('❌ Call rejected');
             showToast(`${data.fromUsername || 'User'} rejected your call`, 'info');
             endCall();
         }
         
-        // ✅ FIXED: End call with single toast
-        let isEndingCall = false;
         function endCall() {
             if (isEndingCall) return;
             isEndingCall = true;
@@ -1211,6 +1266,7 @@ const configuration = {
             callInProgress = false;
             callType = null;
             isMuted = false;
+            pendingIceCandidates = [];
             
             if (callDurationInterval) {
                 clearInterval(callDurationInterval);
@@ -1231,7 +1287,7 @@ const configuration = {
             muteBtn.style.background = '';
             muteBtn.onclick = toggleFloatingMute;
             
-            if (stompClient?.connected && currentRoomId) {
+            if (stompClient?.connected && currentRoomId && callActive) {
                 stompClient.send("/app/call.end", {}, JSON.stringify({ roomId: currentRoomId, fromUserId: userId }));
             }
             
@@ -1249,31 +1305,27 @@ const configuration = {
         
         let reconnectAttempts = 0;
         const MAX_RECONNECT_ATTEMPTS = 10;
+        
         function connectWebSocket() {
             try {
                 const socket = new SockJS('/ws');
                 stompClient = Stomp.over(socket);
-                
-                // Disable debug logs in production
                 stompClient.debug = null;
                 
                 stompClient.connect({}, 
-                    // On success
                     function() {
                         console.log('✅ Connected to WebSocket');
                         reconnectAttempts = 0;
                         showToast('Connected!', 'success');
                         
-                        // Set heartbeat to keep connection alive
                         setInterval(() => {
                             if (stompClient && stompClient.connected) {
                                 stompClient.send("/app/ping", {}, {});
                             }
                         }, 25000);
                         
-                        onConnected(); // Your existing onConnected function
+                        onConnected();
                     },
-                    // On error
                     function(error) {
                         console.error('WebSocket error:', error);
                         reconnectAttempts++;
@@ -1308,13 +1360,6 @@ const configuration = {
             stompClient.send("/app/chat.join", {}, JSON.stringify({ content: username + " joined", messageType: "TEXT", username: username }));
             stompClient.send("/app/chat.users", {}, {});
             loadRecentMessages();
-        }
-        
-        function onError(error) {
-            console.error('WebSocket error:', error);
-            showToast('Connection lost. Reconnecting...', 'error');
-            if (callInProgress || callActive) endCall();
-            setTimeout(connectWebSocket, 5000);
         }
         
         function handleInvite(invite) {
