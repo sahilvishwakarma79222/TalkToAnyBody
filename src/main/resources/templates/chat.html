@@ -1262,8 +1262,8 @@
         }
         
         function handleIceCandidate(data) {
-            if (!data.candidate) {
-                console.log('⚠️ Received empty ICE candidate, ignoring');
+            if (!data || !data.candidate) {
+                console.log('⚠️ Received empty ICE candidate');
                 return;
             }
             
@@ -1271,10 +1271,11 @@
             
             if (peerConnection && peerConnection.remoteDescription) {
                 peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
+                    .then(() => console.log('✅ ICE candidate added'))
                     .catch(e => console.log('❌ Error adding ICE candidate:', e));
             } else {
                 pendingIceCandidates.push(data.candidate);
-                console.log('📦 Queued ICE candidate');
+                console.log('📦 Queued ICE candidate (remote description not ready)');
             }
         }
         
@@ -1290,19 +1291,19 @@
             
             console.log('🔴 Ending call...');
             
-            if (peerConnection) {
-                peerConnection.close();
-                peerConnection = null;
-            }
+            // ✅ Clean video elements first
+            const remoteVideo = document.getElementById('remoteVideoFloating');
+            const localVideo = document.getElementById('localVideoFloating');
             
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
+            if (remoteVideo) {
+                remoteVideo.pause();
+                remoteVideo.srcObject = null;
+                remoteVideo.load();
             }
-            
-            if (remoteStream) {
-                remoteStream.getTracks().forEach(track => track.stop());
-                remoteStream = null;
+            if (localVideo) {
+                localVideo.pause();
+                localVideo.srcObject = null;
+                localVideo.load();
             }
             
             callActive = false;
@@ -1317,11 +1318,7 @@
             }
             
             callStartTime = null;
-            
-            const remoteVideo = document.getElementById('remoteVideoFloating');
-            const localVideo = document.getElementById('localVideoFloating');
-            if (remoteVideo) remoteVideo.srcObject = null;
-            if (localVideo) localVideo.srcObject = null;
+          
             
             hideFloatingCall();
             
@@ -1348,24 +1345,31 @@
         
         let reconnectAttempts = 0;
         const MAX_RECONNECT_ATTEMPTS = 10;
+        let reconnectTimeout = null;
         
         function connectWebSocket() {
+            // Clear any pending reconnect
+            if (reconnectTimeout) clearTimeout(reconnectTimeout);
+            
             try {
                 const socket = new SockJS('/ws');
                 stompClient = Stomp.over(socket);
                 stompClient.debug = null;
                 
+                // ✅ Increase connection timeout
                 stompClient.connect({}, 
-                    function() {
-                        console.log('✅ Connected to WebSocket');
-                        reconnectAttempts = 0;
+                    function(frame) {
+                        console.log('✅ Connected to WebSocket', frame);
+                        reconnectAttempts = 0; // Reset on success
                         showToast('Connected!', 'success');
                         
-                        setInterval(() => {
+                        // Start heartbeat
+                        if (window.heartbeatInterval) clearInterval(window.heartbeatInterval);
+                        window.heartbeatInterval = setInterval(() => {
                             if (stompClient && stompClient.connected) {
                                 stompClient.send("/app/ping", {}, {});
                             }
-                        }, 25000);
+                        }, 10000);
                         
                         onConnected();
                     },
@@ -1373,24 +1377,32 @@
                         console.error('WebSocket error:', error);
                         reconnectAttempts++;
                         
-                        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                            let delay = Math.min(5000 * reconnectAttempts, 30000);
-                            showToast(`Reconnecting in ${delay/1000} sec...`, 'info');
-                            setTimeout(connectWebSocket, delay);
-                        } else {
-                            showToast('Connection failed. Please refresh.', 'error');
-                        }
+                        // Exponential backoff: 2s, 4s, 8s, 16s, max 30s
+                        let delay = Math.min(2000 * Math.pow(2, reconnectAttempts - 1), 30000);
+                        showToast(`Reconnecting in ${delay/1000}s...`, 'info');
+                        
+                        reconnectTimeout = setTimeout(() => {
+                            connectWebSocket();
+                        }, delay);
                     }
                 );
             } catch (error) {
                 console.error('Connection error:', error);
-                setTimeout(connectWebSocket, 5000);
+                reconnectTimeout = setTimeout(connectWebSocket, 5000);
             }
         }
         
         function onConnected() {
             showToast('Connected to VioletChat!', 'success');
-            
+            // ✅ Send heartbeat EVERY 10 seconds (not 25)
+            const heartbeatInterval = setInterval(() => {
+                if (stompClient && stompClient.connected) {
+                    stompClient.send("/app/ping", {}, {});
+                    console.log('💓 Heartbeat sent');
+                }
+            }, 10000); // 10 seconds
+            // Save interval for cleanup
+            window.heartbeatInterval = heartbeatInterval;
             stompClient.subscribe('/topic/global', msg => { if (currentRoomType === 'GLOBAL') displayMessage(JSON.parse(msg.body)); });
             stompClient.subscribe('/topic/users', msg => updateUsersList(JSON.parse(msg.body)));
             stompClient.subscribe('/user/' + userId + '/queue/invites', handleInvite);
