@@ -623,6 +623,10 @@
         
         let lastToastMessage = null;
         let lastToastTime = 0;
+        
+        // ✅ Auto video call variables
+        let otherUserPeerId = null;
+        let isCallInitiating = false;
         /*]]>*/
     </script>
     
@@ -853,6 +857,9 @@
                 peer = null;
             }
             
+            otherUserPeerId = null;
+            isCallInitiating = false;
+            
             currentRoomType = 'GLOBAL';
             currentRoomId = null;
             document.getElementById('roomBadge').innerHTML = 'Global Chat';
@@ -881,7 +888,7 @@
             
             peer.on('open', (id) => {
                 console.log('✅ PeerJS ready! ID:', id);
-                showToast('Video call ready! Share your ID: ' + id, 'success');
+                showToast('Video call ready!', 'success');
                 
                 // Send peer ID to other user in the room via WebSocket
                 stompClient.send("/app/chat.private.send", {}, JSON.stringify({
@@ -896,10 +903,10 @@
             
             peer.on('call', (call) => {
                 console.log('📞 Incoming call from:', call.peer);
-                showToast('Incoming video call!', 'info');
                 
-                // Ask user to accept
-                if (confirm(`${call.metadata?.callerName || 'Someone'} is calling you! Accept?`)) {
+                // Auto-accept if not already in a call
+                if (!callActive && !currentCall) {
+                    showToast('Incoming video call! Accepting...', 'info');
                     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                         .then((stream) => {
                             localPeerStream = stream;
@@ -909,18 +916,24 @@
                         .catch(err => {
                             console.error('Failed to get media:', err);
                             showToast('Failed to get camera/mic', 'error');
+                            call.close();
                         });
                 } else {
+                    // Busy, reject call
                     call.close();
+                    showToast('Busy on another call', 'info');
                 }
             });
             
             peer.on('error', (err) => {
                 console.error('PeerJS error:', err);
-                showToast('Call error: ' + err.type, 'error');
+                if (err.type !== 'unavailable-id') {
+                    showToast('Call error: ' + err.type, 'error');
+                }
             });
         }
         
+        // ✅ AUTO VIDEO CALL - No manual ID needed!
         function startVideoCall() {
             if (currentRoomType !== 'PRIVATE') {
                 showToast('Calls only in private rooms!', 'error');
@@ -933,23 +946,37 @@
                 return;
             }
             
-            // ✅ Auto call if other user's Peer ID is available
+            if (callActive || currentCall) {
+                showToast('Already in a call!', 'info');
+                return;
+            }
+            
+            // Check if other user's Peer ID is available
             if (otherUserPeerId) {
-                showToast('Starting call...', 'info');
+                showToast('Starting video call...', 'info');
                 makeCall(otherUserPeerId);
             } else {
-                // Fallback - show modal if ID not available
                 showToast('Waiting for other user to be ready...', 'info');
-                setTimeout(() => {
+                // Wait for other user's Peer ID to arrive
+                let waitCount = 0;
+                const waitInterval = setInterval(() => {
+                    waitCount++;
                     if (otherUserPeerId) {
-                        startVideoCall();
-                    } else {
-                        showToast('Other user not ready yet. Try again.', 'error');
+                        clearInterval(waitInterval);
+                        showToast('Starting video call...', 'info');
+                        makeCall(otherUserPeerId);
+                    } else if (waitCount > 30) {
+                        clearInterval(waitInterval);
+                        showToast('Other user not ready. Make sure they are in the room.', 'error');
                     }
-                }, 2000);
+                }, 1000);
             }
         }
+        
         function makeCall(targetPeerId) {
+            if (isCallInitiating) return;
+            isCallInitiating = true;
+            
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then((stream) => {
                     localPeerStream = stream;
@@ -960,6 +987,7 @@
                 .catch(err => {
                     console.error('Failed to get media:', err);
                     showToast('Failed to access camera/mic', 'error');
+                    isCallInitiating = false;
                 });
         }
         
@@ -981,6 +1009,7 @@
                 callActive = true;
                 document.getElementById('callStatus').innerHTML = 'Connected';
                 startCallDuration();
+                isCallInitiating = false;
             });
             
             call.on('close', () => {
@@ -995,15 +1024,15 @@
             });
         }
         
-        let otherUserPeerId = null;
-
-     // Modify handlePeerMessage function
+        // Handle peer ready messages
         function handlePeerMessage(content) {
             if (content.startsWith('🎥 PEER_READY:')) {
                 const peerId = content.split(':')[1];
-                otherUserPeerId = peerId;
-                console.log('✅ Other user ready, Peer ID:', peerId);
-                showToast('Other user is ready for video call!', 'success');
+                if (peerId !== peer?.id) { // Don't store own peer ID
+                    otherUserPeerId = peerId;
+                    console.log('✅ Other user ready, Peer ID:', peerId);
+                    showToast('Other user is ready for video call!', 'success');
+                }
             }
         }
         
@@ -1033,6 +1062,7 @@
             }
             
             callActive = false;
+            isCallInitiating = false;
             
             if (callDurationInterval) {
                 clearInterval(callDurationInterval);
