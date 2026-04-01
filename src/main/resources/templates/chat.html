@@ -1015,10 +1015,17 @@
                 console.log('✅ Got local stream');
                 
                 if (type === 'video') {
-                    document.getElementById('localVideoFloating').srcObject = localStream;
+                    const localVideo = document.getElementById('localVideoFloating');
+                    if (localVideo.srcObject) {
+                        localVideo.srcObject = null;
+                    }
+                    localVideo.srcObject = localStream;
+                    localVideo.load();
+                    localVideo.play().catch(e => console.log('Local video play:', e));
                     document.getElementById('localVideoContainer').style.display = 'block';
                     document.getElementById('callIcon').innerHTML = '📹';
-                } else {
+                }
+                else {
                     document.getElementById('callIcon').innerHTML = '🎤';
                 }
                 
@@ -1064,7 +1071,7 @@
             
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
-                    console.log('📡 ICE candidate:', event.candidate.type);
+                    console.log('📡 ICE candidate:', event.candidate.type, event.candidate);
                     stompClient.send("/app/call.ice", {}, JSON.stringify({
                         roomId: currentRoomId, fromUserId: userId, candidate: event.candidate
                     }));
@@ -1075,15 +1082,44 @@
             
             peerConnection.ontrack = (event) => {
                 console.log('📺 Received remote track:', event.track.kind);
-                remoteStream = event.streams[0];
-                const remoteVideo = document.getElementById('remoteVideoFloating');
-                remoteVideo.srcObject = remoteStream;
-                remoteVideo.play().catch(e => console.log('Video play error:', e));
                 
-                callActive = true;
-                document.getElementById('callStatus').innerHTML = 'Connected';
-                startCallDuration();
-                console.log('✅ Call connected!');
+                if (event.track.kind === 'video') {
+                    remoteStream = event.streams[0];
+                    const remoteVideo = document.getElementById('remoteVideoFloating');
+                    
+                    // Reset video element to avoid play() interruption
+                    if (remoteVideo.srcObject) {
+                        remoteVideo.pause();
+                        remoteVideo.srcObject = null;
+                    }
+                    
+                    remoteVideo.srcObject = remoteStream;
+                    remoteVideo.load(); // Load the stream
+                    
+                    // Use play() with proper promise handling
+                    const playPromise = remoteVideo.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            console.log('✅ Remote video playing successfully');
+                        }).catch(error => {
+                            console.log('⚠️ Remote video play error:', error.name);
+                            // Auto-play may be blocked, but stream is attached
+                            if (error.name === 'NotAllowedError') {
+                                console.log('User interaction required for auto-play');
+                                showToast('Click anywhere to start video', 'info');
+                                document.body.onclick = () => {
+                                    remoteVideo.play().catch(e => console.log(e));
+                                    document.body.onclick = null;
+                                };
+                            }
+                        });
+                    }
+                    
+                    callActive = true;
+                    document.getElementById('callStatus').innerHTML = 'Connected';
+                    startCallDuration();
+                    console.log('✅ Call connected!');
+                }
             };
             
             peerConnection.onconnectionstatechange = () => {
@@ -1226,9 +1262,16 @@
         }
         
         function handleIceCandidate(data) {
-            console.log('🧊 Received ICE candidate:', data.candidate.type);
+            if (!data.candidate) {
+                console.log('⚠️ Received empty ICE candidate, ignoring');
+                return;
+            }
+            
+            console.log('🧊 Received ICE candidate:', data.candidate.type || 'unknown');
+            
             if (peerConnection && peerConnection.remoteDescription) {
-                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
+                    .catch(e => console.log('❌ Error adding ICE candidate:', e));
             } else {
                 pendingIceCandidates.push(data.candidate);
                 console.log('📦 Queued ICE candidate');
