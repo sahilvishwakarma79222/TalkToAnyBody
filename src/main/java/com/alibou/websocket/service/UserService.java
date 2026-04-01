@@ -17,9 +17,12 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
     
+    @Autowired
+    private RoomService roomService;
+    
     @Transactional
     public User createUser(String username, String sessionId) {
-        // Check if user with this session already exists
+        // ✅ Remove any existing user with this session first
         userRepository.deleteBySessionId(sessionId);
         
         // Create new user
@@ -35,7 +38,28 @@ public class UserService {
     
     @Transactional
     public void removeUser(Long userId) {
+        // ✅ First remove user from all rooms
+        try {
+            roomService.forceLeaveAllRooms(userId);
+        } catch (Exception e) {
+            System.out.println("Error removing from rooms: " + e.getMessage());
+        }
+        
+        // ✅ Then delete the user
         userRepository.deleteById(userId);
+        System.out.println("🗑️ User deleted: " + userId);
+    }
+    
+    // ✅ Clean up old/inactive users
+    @Transactional
+    public void cleanupInactiveUsers() {
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(5);
+        List<User> inactiveUsers = userRepository.findInactiveUsers(cutoff);
+        
+        for (User user : inactiveUsers) {
+            System.out.println("🧹 Cleaning inactive user: " + user.getUsername() + " (last active: " + user.getLastActive() + ")");
+            removeUser(user.getId());
+        }
     }
     
     public List<User> getAllOnlineUsers() {
@@ -73,6 +97,16 @@ public class UserService {
     public List<User> getUsersInGlobalChat() {
         return userRepository.findByCurrentRoomType("GLOBAL");
     }
- 
     
+    // ✅ Get all users (for debugging)
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+    
+    // ✅ Force delete all users (for cleanup)
+    @Transactional
+    public void deleteAllUsers() {
+        userRepository.deleteAll();
+        System.out.println("🗑️ All users deleted");
+    }
 }

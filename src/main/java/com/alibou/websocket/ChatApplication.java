@@ -1,18 +1,31 @@
 package com.alibou.websocket;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import com.alibou.websocket.service.RoomService;
+
 @SpringBootApplication
 @EnableScheduling
-public class ChatApplication {
+public class ChatApplication implements ApplicationRunner {
 
+	   @Autowired
+	    private RoomService roomService;
+	   
 	public static void main(String[] args) {
 		SpringApplication.run(ChatApplication.class, args);
+		
+	}
+
+	@Override
+	public void run(ApplicationArguments args) throws Exception {
 		 System.out.println("🚀 Chat Application Started!");
-//	        System.out.println("📍 H2 Console: http://localhost:8082/h2-console");
-	        System.out.println("📍 App URL: http://localhost:8082");
+	        roomService.cleanupAllStaleParticipants();
+	        System.out.println("📍 App URL: http://localhost:8082");		
 	}
 
 }

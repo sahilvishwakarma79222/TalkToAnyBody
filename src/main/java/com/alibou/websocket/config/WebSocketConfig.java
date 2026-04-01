@@ -1,4 +1,5 @@
 package com.alibou.websocket.config;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -11,21 +12,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Enable simple broker for topics
         config.enableSimpleBroker("/topic", "/queue", "/user");
-        
-        // Prefix for client-to-server messages
         config.setApplicationDestinationPrefixes("/app");
-        
-        // Prefix for user-specific messages
         config.setUserDestinationPrefix("/user");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // WebSocket endpoint with SockJS fallback
+        // ✅ Render compatible - allow all origins
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
-                .withSockJS();
+                .withSockJS()
+                .setClientLibraryUrl("https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js");
+        
+        // ✅ Also add raw WebSocket endpoint (for better compatibility)
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("*");
     }
 }

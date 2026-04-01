@@ -152,4 +152,16 @@ public class RoomController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    
+ // Add this method to RoomController.java
+    @PostMapping("/cleanup")
+    public ResponseEntity<?> cleanupStaleParticipants() {
+        try {
+            roomService.cleanupAllStaleParticipants();
+            return ResponseEntity.ok(Map.of("message", "Cleanup completed successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

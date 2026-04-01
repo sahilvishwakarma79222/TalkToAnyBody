@@ -69,4 +69,29 @@ public class UserController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(userDTOs);
     }
+    
+ // Add to UserController.java
+
+ // ✅ Get all users (for debugging)
+ @GetMapping("/all")
+ public ResponseEntity<?> getAllUsers() {
+     List<User> users = userService.getAllUsers();
+     return ResponseEntity.ok(users.stream()
+         .map(UserDTO::fromUser)
+         .collect(Collectors.toList()));
+ }
+
+ // ✅ Delete all users (cleanup)
+ @DeleteMapping("/cleanup")
+ public ResponseEntity<?> cleanupAllUsers() {
+     userService.deleteAllUsers();
+     return ResponseEntity.ok(Map.of("message", "All users deleted"));
+ }
+
+ // ✅ Delete inactive users
+ @PostMapping("/cleanup-inactive")
+ public ResponseEntity<?> cleanupInactiveUsers() {
+     userService.cleanupInactiveUsers();
+     return ResponseEntity.ok(Map.of("message", "Inactive users cleaned up"));
+ }
 }

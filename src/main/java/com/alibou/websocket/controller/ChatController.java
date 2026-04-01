@@ -346,4 +346,40 @@ public class ChatController {
             );
         }
     }
+    
+ // ChatController.java mein yeh method add karo - For leaving private room properly
+
+    @MessageMapping("/chat.private.leave")
+    public void leavePrivateRoom(@Payload Map<String, Object> payload,
+                                  SimpMessageHeaderAccessor headerAccessor) {
+        String roomId = (String) payload.get("roomId");
+        Long userId = ((Number) payload.get("userId")).longValue();
+        String username = (String) payload.get("username");
+        
+        System.out.println("🚪 User " + username + " left private room: " + roomId);
+        
+        // Remove room from session
+        headerAccessor.getSessionAttributes().remove("currentRoomId");
+        headerAccessor.getSessionAttributes().remove("currentRoomType");
+        
+        // Notify room participants
+        Message leaveMessage = chatService.saveMessage(
+            username + " left the private room!",
+            "TEXT",
+            null,
+            "System",
+            "PRIVATE",
+            roomId
+        );
+        
+        messagingTemplate.convertAndSend("/topic/room/" + roomId, 
+            MessageDTO.fromMessage(leaveMessage));
+    }
+    
+ // Add this method for connection health check
+    @MessageMapping("/ping")
+    public void ping(SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        messagingTemplate.convertAndSendToUser(sessionId, "/queue/pong", "pong");
+    }
 }

@@ -1,4 +1,5 @@
 package com.alibou.websocket.repository;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -22,6 +23,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     @Query("SELECT u FROM User u WHERE u.lastActive > :time")
     List<User> findActiveUsers(@Param("time") LocalDateTime time);
+    
+    // ✅ ADD THIS METHOD - Find inactive users
+    @Query("SELECT u FROM User u WHERE u.lastActive < :time")
+    List<User> findInactiveUsers(@Param("time") LocalDateTime time);
     
     @Modifying
     @Transactional

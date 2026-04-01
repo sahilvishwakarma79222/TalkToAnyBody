@@ -1,5 +1,6 @@
 package com.alibou.websocket.repository;
-  import org.springframework.data.jpa.repository.JpaRepository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,6 +22,9 @@ public interface RoomParticipantRepository extends JpaRepository<RoomParticipant
     @Query("SELECT p FROM RoomParticipant p WHERE p.id.roomId = :roomId")
     List<RoomParticipant> findByRoomId(@Param("roomId") String roomId);
     
+    @Query("SELECT p FROM RoomParticipant p WHERE p.id.userId = :userId")
+    List<RoomParticipant> findByUserId(@Param("userId") Long userId);
+    
     @Query("SELECT p FROM RoomParticipant p WHERE p.id.roomId = :roomId AND p.id.userId = :userId")
     Optional<RoomParticipant> findByRoomIdAndUserId(@Param("roomId") String roomId, 
                                                      @Param("userId") Long userId);
@@ -30,8 +34,19 @@ public interface RoomParticipantRepository extends JpaRepository<RoomParticipant
     @Query("DELETE FROM RoomParticipant p WHERE p.id.roomId = :roomId AND p.id.userId = :userId")
     void deleteByRoomIdAndUserId(@Param("roomId") String roomId, @Param("userId") Long userId);
     
+    // ✅ ADD THIS METHOD - Delete all participants for a user
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM RoomParticipant p WHERE p.id.userId = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
+    
     @Modifying
     @Transactional
     @Query("DELETE FROM RoomParticipant p WHERE p.id.roomId = :roomId")
     void deleteAllByRoomId(@Param("roomId") String roomId);
+    
+    @Modifying
+    @Transactional
+    @Query(value = "DELETE FROM room_participants WHERE user_id NOT IN (SELECT id FROM users)", nativeQuery = true)
+    void deleteOrphanParticipants();
 }
