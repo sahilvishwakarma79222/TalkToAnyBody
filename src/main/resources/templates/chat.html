@@ -6,8 +6,8 @@
 <!-- WebRTC Adapter -->
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>VioletChat - Connect with Style</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>TalkToAnybody</title>
     <style>
         * {
             margin: 0;
@@ -16,31 +16,23 @@
         }
         
         :root {
-            --light-bg: #f8f9ff;
+            --light-bg: #f5f7fb;
             --light-surface: #ffffff;
-            --light-surface-2: #f0f2f8;
-            --light-border: #e9ecef;
+            --light-surface-2: #f0f2f5;
+            --light-border: #e4e6eb;
             --light-text: #1a1a2e;
-            --light-text-secondary: #6c757d;
+            --light-text-secondary: #65676b;
             --light-header: #ffffff;
-            --dark-bg: #0f0f1a;
-            --dark-surface: #1a1a2e;
-            --dark-surface-2: #252538;
-            --dark-border: #2d2d44;
-            --dark-text: #e9ecef;
-            --dark-text-secondary: #a0a0c0;
-            --dark-header: #1a1a2e;
-            --violet-primary: #8b5cf6;
-            --violet-dark: #7c3aed;
-            --violet-light: #a78bfa;
-            --pink-primary: #ec489a;
-            --pink-dark: #db2777;
-            --pink-light: #f472b6;
-            --online: #10b981;
-            --offline: #6c757d;
-            --success: #10b981;
+            --dark-bg: #18191a;
+            --dark-surface: #242526;
+            --dark-surface-2: #3a3b3c;
+            --dark-border: #3e4042;
+            --dark-text: #e4e6eb;
+            --dark-text-secondary: #b0b3b8;
+            --dark-header: #242526;
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
             --error: #ef4444;
-            --warning: #f59e0b;
         }
         
         body {
@@ -51,8 +43,7 @@
             --text: var(--light-text);
             --text-secondary: var(--light-text-secondary);
             --header: var(--light-header);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
             background: var(--bg);
             height: 100vh;
             overflow: hidden;
@@ -68,142 +59,286 @@
             --header: var(--dark-header);
         }
         
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: var(--surface-2); }
-        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary)); border-radius: 4px; }
-        
+        /* ========== NAVBAR ========== */
         .navbar {
             background: var(--header);
-            backdrop-filter: blur(10px);
-            padding: 12px 20px;
+            padding: 0 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border);
-            position: sticky;
+            position: fixed;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 100;
+            height: 56px;
         }
         
-        .nav-left { display: flex; align-items: center; gap: 12px; }
-        .toggle-sidebar {
-            background: var(--surface-2);
-            border: none;
-            color: var(--text);
-            font-size: 1.3rem;
-            cursor: pointer;
-            padding: 8px 12px;
-            border-radius: 12px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .toggle-sidebar:hover { background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary)); color: white; transform: scale(1.05); }
-        .nav-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        .nav-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-        .nav-btn {
-            background: var(--surface-2);
-            border: none;
-            padding: 8px 14px;
-            border-radius: 20px;
-            color: var(--text);
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        .nav-btn:hover { background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary)); color: white; transform: translateY(-1px); }
-        .leave-room-btn { background: linear-gradient(135deg, var(--error), var(--pink-dark)); color: white; }
-        .theme-toggle {
-            background: var(--surface-2);
-            border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 8px 12px;
-            border-radius: 50%;
-            transition: all 0.2s;
-        }
-        .theme-toggle:hover { background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary)); transform: rotate(15deg); }
-        .user-info {
-            background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary));
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: white;
-        }
-        
-        .main-layout { display: flex; height: calc(100vh - 60px); position: relative; }
-        .sidebar {
-            width: 320px;
-            background: var(--surface);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 50;
-        }
-        .sidebar.hidden { transform: translateX(-100%); }
-        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); background: var(--surface); }
-        .sidebar-header h3 { color: var(--text); margin-bottom: 8px; font-size: 1.1rem; }
-        .room-badge {
-            font-size: 0.75rem;
-            background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary));
-            padding: 4px 10px;
-            border-radius: 12px;
-            display: inline-block;
-            color: white;
-            font-weight: 500;
-        }
-        .users-list { flex: 1; overflow-y: auto; padding: 8px; }
-        .user-item {
-            padding: 12px 16px;
-            border-radius: 12px;
-            margin-bottom: 4px;
-            background: var(--surface-2);
-            color: var(--text);
-            cursor: pointer;
-            transition: all 0.2s;
+        .nav-left {
             display: flex;
             align-items: center;
             gap: 12px;
         }
-        .user-item::before { content: "👤"; font-size: 1.2rem; }
-        .user-item:hover { background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary)); color: white; transform: translateX(4px); }
-        .user-name { font-weight: 500; }
         
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+        .sidebar-minimize-btn {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 1rem;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .sidebar-minimize-btn:hover {
+            background: var(--surface-2);
+        }
+        
+        /* Mobile menu button - for sidebar */
+        .mobile-menu-btn {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 1.2rem;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .mobile-menu-btn:hover {
+            background: var(--surface-2);
+        }
+        
+        /* Desktop action buttons */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        /* Mobile action button */
+        .mobile-action-btn {
+            display: none;
+            background: var(--surface-2);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .nav-btn {
+            background: var(--surface-2);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .nav-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .leave-room-btn {
+            background: var(--error);
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .user-info {
+            background: var(--primary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: white;
+        }
+        
+        .theme-toggle {
+            background: var(--surface-2);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* ========== MAIN LAYOUT ========== */
+        .main-layout {
+            display: flex;
+            height: 100vh;
+            padding-top: 56px;
+        }
+        
+        /* ========== SIDEBAR ========== */
+        .sidebar {
+            width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        /* Desktop minimized */
+        .sidebar.minimized {
+            width: 60px;
+        }
+        
+        .sidebar.minimized .sidebar-header h3,
+        .sidebar.minimized .room-badge,
+        .sidebar.minimized .user-name {
+            display: none;
+        }
+        
+        .sidebar.minimized .user-item {
+            justify-content: center;
+            padding: 12px;
+        }
+        
+        .sidebar.minimized .user-item::before {
+            margin: 0;
+        }
+        
+        /* Mobile sidebar - slide from left */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 56px;
+                bottom: 0;
+                z-index: 200;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                width: 280px;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .sidebar-header h3 {
+            color: var(--text);
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .room-badge {
+            font-size: 0.7rem;
+            background: var(--primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            color: white;
+        }
+        
+        .users-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        
+        .user-item {
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            background: var(--surface-2);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+        
+        .user-item:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .user-item::before {
+            content: "👤";
+            font-size: 1rem;
+        }
+        
+        .user-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        /* ========== CHAT AREA ========== */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            overflow: hidden;
+        }
+        
         .chat-header {
-            padding: 15px 20px;
+            padding: 12px 20px;
             background: var(--surface);
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            backdrop-filter: blur(10px);
         }
-        .chat-title { font-size: 1.1rem; font-weight: 600; color: var(--text); }
-        .call-controls { display: flex; gap: 8px; }
-        .call-btn {
-            background: var(--surface-2);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            color: var(--text);
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.85rem;
-        }
-        .call-btn:hover { background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary)); color: white; }
         
+        .chat-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+        
+        .call-btn {
+            background: var(--primary);
+            border: none;
+            padding: 6px 16px;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        /* ========== MESSAGES ========== */
         .messages-container {
             flex: 1;
             overflow-y: auto;
@@ -211,30 +346,56 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            background-image: radial-gradient(circle at 25% 50%, var(--surface-2) 1px, transparent 1px);
-            background-size: 30px 30px;
         }
         
         .message {
-            max-width: 70%;
-            padding: 8px 12px;
+            max-width: 65%;
+            padding: 8px 14px;
             border-radius: 18px;
-            position: relative;
-            animation: fadeInUp 0.3s ease;
         }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .message:not(.own) { background: var(--surface); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
-        .message.own { background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary)); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .message-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 12px; font-size: 0.7rem; }
-        .message-sender { font-weight: 600; font-size: 0.75rem; }
-        .message:not(.own) .message-sender { color: var(--violet-primary); }
-        .message.own .message-sender { color: rgba(255,255,255,0.9); }
-        .message-time { font-size: 0.65rem; opacity: 0.7; }
-        .message-content { word-wrap: break-word; font-size: 0.95rem; line-height: 1.4; }
         
+        .message:not(.own) {
+            background: var(--surface);
+            color: var(--text);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message.own {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+        
+        .message-sender {
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .message:not(.own) .message-sender {
+            color: var(--primary);
+        }
+        
+        .message-time {
+            font-size: 0.6rem;
+            opacity: 0.7;
+        }
+        
+        .message-content {
+            font-size: 0.85rem;
+            word-wrap: break-word;
+        }
+        
+        /* ========== INPUT AREA ========== */
         .input-area {
             padding: 12px 20px;
             background: var(--surface);
@@ -243,44 +404,159 @@
             gap: 10px;
             align-items: center;
         }
+        
         .input-btn {
             background: var(--surface-2);
             border: none;
-            padding: 10px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 1.2rem;
-            transition: all 0.2s;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 1rem;
         }
-        .input-btn:hover { background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary)); transform: scale(1.1); }
+        
         .message-input {
             flex: 1;
-            padding: 12px 18px;
+            padding: 10px 16px;
             background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: 25px;
-            color: var(--text);
-            font-size: 0.95rem;
-            transition: all 0.2s;
-        }
-        .message-input:focus { outline: none; border-color: var(--violet-primary); box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2); }
-        .send-btn {
-            background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary));
             border: none;
-            padding: 10px 24px;
-            border-radius: 25px;
+            border-radius: 24px;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+        
+        .message-input:focus {
+            outline: none;
+        }
+        
+        .send-btn {
+            background: var(--primary);
+            border: none;
+            padding: 8px 20px;
+            border-radius: 24px;
             color: white;
             cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
+            font-weight: 500;
         }
-        .send-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
         
+        /* ========== FLOATING CALL ========== */
+        .floating-call {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 280px;
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1100;
+            overflow: hidden;
+            display: none;
+            border: 1px solid var(--border);
+        }
+        
+        .floating-call.minimized {
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
+        }
+        
+        .floating-call.minimized .call-header-text,
+        .floating-call.minimized .call-controls-floating,
+        .floating-call.minimized .call-videos-floating {
+            display: none;
+        }
+        
+        .floating-call.minimized .call-header {
+            justify-content: center;
+            padding: 0;
+            height: 50px;
+        }
+        
+        .call-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: var(--primary);
+            cursor: grab;
+        }
+        
+        .call-header-text {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: white;
+            font-size: 0.7rem;
+        }
+        
+        .minimize-btn, .close-call-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: white;
+        }
+        
+        .call-videos-floating {
+            padding: 8px;
+            background: var(--surface-2);
+        }
+        
+        .remote-video-container {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+        }
+        
+        .remote-video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .local-video-container {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            width: 80px;
+            height: 60px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--primary);
+            display: none;
+        }
+        
+        .call-controls-floating {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            padding: 10px;
+            background: var(--surface);
+        }
+        
+        .call-control-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .call-control-btn.mute-btn {
+            background: var(--surface-2);
+            color: var(--text);
+        }
+        
+        .call-control-btn.end-call-btn {
+            background: var(--error);
+            color: white;
+        }
+        
+        /* ========== MODAL ========== */
         .modal {
             display: none;
             position: fixed;
@@ -288,221 +564,164 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(8px);
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
+        
         .modal-content {
             background: var(--surface);
-            padding: 28px;
-            border-radius: 28px;
-            min-width: 300px;
-            max-width: 500px;
-            animation: modalSlideIn 0.3s ease;
-            border: 1px solid var(--border);
+            padding: 24px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 350px;
         }
-        @keyframes modalSlideIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
+        
+        .modal-content h3 {
+            color: var(--text);
+            margin-bottom: 16px;
+            font-size: 1.1rem;
         }
-        .modal-content h3 { color: var(--text); margin-bottom: 20px; font-size: 1.3rem; }
+        
         .modal-content input {
             width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
             background: var(--surface-2);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: 10px;
             color: var(--text);
-            font-size: 0.95rem;
         }
-        .modal-content input:focus { outline: none; border-color: var(--violet-primary); }
-        .modal-content button { padding: 10px 20px; margin-right: 10px; border: none; border-radius: 20px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
-        .modal-btn-primary { background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary)); color: white; }
-        .modal-btn-secondary { background: var(--surface-2); color: var(--text); }
         
+        .modal-content button {
+            padding: 8px 16px;
+            margin-right: 8px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .modal-btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .modal-btn-secondary {
+            background: var(--surface-2);
+            color: var(--text);
+        }
+        
+        /* ========== TOAST ========== */
         .toast {
             position: fixed;
-            bottom: 20px;
+            bottom: 80px;
             left: 50%;
             transform: translateX(-50%);
             background: var(--surface);
             color: var(--text);
-            padding: 12px 24px;
+            padding: 8px 20px;
             border-radius: 40px;
-            border-left: 3px solid var(--violet-primary);
+            border-left: 3px solid var(--primary);
             z-index: 2000;
-            animation: slideUp 0.3s ease;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            font-size: 0.9rem;
-            white-space: nowrap;
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-            to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-        .toast.success { border-left-color: var(--success); }
-        .toast.error { border-left-color: var(--error); }
-        
-        .invite-users-list { max-height: 300px; overflow-y: auto; margin: 15px 0; }
-        .invite-user-item {
-            padding: 12px;
-            margin: 8px 0;
-            background: var(--surface-2);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .invite-user-item:hover { background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary)); color: white; transform: translateX(4px); }
-        
-        /* Floating Call Window */
-        .floating-call {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 360px;
-            background: var(--surface);
-            border-radius: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            z-index: 1100;
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid var(--border);
-            backdrop-filter: blur(10px);
-            display: none;
-        }
-        .floating-call.minimized { width: 56px; height: 56px; border-radius: 28px; }
-        .floating-call.minimized .call-header-text,
-        .floating-call.minimized .call-controls-floating,
-        .floating-call.minimized .call-videos-floating { display: none; }
-        .floating-call.minimized .call-header { justify-content: center; padding: 0; height: 56px; }
-        .floating-call.minimized .minimize-btn { margin: 0; transform: rotate(180deg); }
-        .call-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary));
-            cursor: grab;
-            user-select: none;
-        }
-        .call-header:active { cursor: grabbing; }
-        .call-header-text { display: flex; align-items: center; gap: 8px; color: white; font-size: 0.85rem; font-weight: 500; }
-        .call-header-text .call-icon { font-size: 1.1rem; }
-        .call-header-text .call-duration { font-family: monospace; font-size: 0.8rem; }
-        .header-actions { display: flex; gap: 8px; }
-        .minimize-btn, .close-call-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            color: white;
             font-size: 0.8rem;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            white-space: nowrap;
+            max-width: 90%;
+            text-align: center;
         }
-        .minimize-btn:hover, .close-call-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
-        .call-videos-floating { padding: 12px; background: var(--surface-2); }
-        .remote-video-container { position: relative; background: #000; border-radius: 16px; overflow: hidden; aspect-ratio: 16/9; }
-        .remote-video-container video { width: 100%; height: 100%; object-fit: cover; }
-        .local-video-container {
-            position: absolute;
-            bottom: 12px;
-            right: 12px;
-            width: 100px;
-            height: 75px;
-            background: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 2px solid var(--violet-primary);
-            cursor: pointer;
-            transition: all 0.2s;
-            z-index: 10;
-            display: none;
-        }
-        .local-video-container video { width: 100%; height: 100%; object-fit: cover; }
-        .local-video-container:hover { transform: scale(1.05); border-color: var(--pink-primary); }
-        .audio-call-indicator {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            padding: 16px;
-            background: var(--surface-2);
-            border-radius: 16px;
-            margin: 12px;
-        }
-        .audio-call-indicator .avatar {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--violet-primary), var(--pink-primary));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-        .audio-call-indicator .caller-name { font-weight: 600; color: var(--text); }
-        .call-controls-floating {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            padding: 12px 16px;
-            background: var(--surface);
-            border-top: 1px solid var(--border);
-        }
-        .call-control-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .call-control-btn.mute-btn { background: var(--surface-2); color: var(--text); }
-        .call-control-btn.mute-btn.active { background: var(--warning); color: white; }
-        .call-control-btn.end-call-btn { background: var(--error); color: white; }
-        .call-control-btn:hover { transform: scale(1.1); }
         
+        .invite-users-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .invite-user-item {
+            padding: 10px;
+            margin: 6px 0;
+            background: var(--surface-2);
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
+        /* ========== RESPONSIVE ========== */
         @media (max-width: 768px) {
-            .sidebar { position: absolute; height: 100%; width: 280px; z-index: 200; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
-            .sidebar.hidden { transform: translateX(-100%); }
-            .message { max-width: 85%; }
-            .floating-call { width: 300px; bottom: 10px; right: 10px; }
-            .local-video-container { width: 80px; height: 60px; }
+            .sidebar-minimize-btn {
+                display: none;
+            }
+            
+            .action-buttons {
+                display: none;
+            }
+            
+            .mobile-action-btn {
+                display: flex;
+            }
+            
+            .user-info {
+                display: block;
+                padding: 4px 10px;
+                font-size: 0.7rem;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+            
+            .floating-call {
+                width: 260px;
+                bottom: 70px;
+                right: 10px;
+            }
+            
+            .local-video-container {
+                width: 70px;
+                height: 52px;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .mobile-menu-btn {
+                display: none;
+            }
+            
+            .sidebar-minimize-btn {
+                display: flex;
+            }
         }
     </style>
 </head>
 <body>
     <div class="navbar">
         <div class="nav-left">
-            <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
-            <div class="nav-title">💜 VioletChat</div>
+            <!-- Desktop sidebar minimize button -->
+            <button class="sidebar-minimize-btn" id="sidebarMinimizeBtn" title="Minimize sidebar">◀</button>
+            <!-- Mobile sidebar open button -->
+            <button class="mobile-menu-btn" id="mobileMenuBtn" title="Open sidebar">☰</button>
+            
+            <!-- Desktop action buttons -->
+            <div class="action-buttons" id="desktopActions">
+                <button class="nav-btn" onclick="showCreateRoomModal()">➕ Create</button>
+                <button class="nav-btn" onclick="showJoinRoomModal()">🔗 Join</button>
+                <button class="nav-btn" onclick="joinFixedRoom()">⭐ Fixed</button>
+            </div>
+            
+            <!-- Mobile action button -->
+            <button class="mobile-action-btn" id="mobileActionBtn" title="Menu">⋮</button>
+            
+            <div class="nav-title">TalkToAnybody</div>
         </div>
         <div class="nav-right">
-            <button class="nav-btn" onclick="showCreateRoomModal()">➕ Create</button>
-            <button class="nav-btn" onclick="showJoinRoomModal()">🔗 Join</button>
-            <button class="nav-btn" onclick="joinFixedRoom()">⭐ Fixed</button>
-            <button id="leaveRoomBtn" class="nav-btn leave-room-btn" style="display: none;" onclick="leaveRoom()">🚪 Leave</button>
-            <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
             <div class="user-info" th:text="${username}"></div>
+            <button id="leaveRoomBtn" class="leave-room-btn" onclick="leaveRoom()">🚪 Leave</button>
+            <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
         </div>
     </div>
     
     <div class="main-layout">
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h3>💬 Active Chats</h3>
+                <h3>Active Chats</h3>
                 <span class="room-badge" id="roomBadge">Global Chat</span>
             </div>
             <div class="users-list" id="usersList">
@@ -521,10 +740,10 @@
             <div class="messages-container" id="messages">
                 <div class="message">
                     <div class="message-header">
-                        <span class="message-sender">💜 VioletChat</span>
+                        <span class="message-sender">TalkToAnybody</span>
                         <span class="message-time">Now</span>
                     </div>
-                    <div class="message-content">✨ Welcome! Start chatting in style...</div>
+                    <div class="message-content">✨ Welcome! Start chatting...</div>
                 </div>
             </div>
             
@@ -533,6 +752,19 @@
                 <button class="input-btn" onclick="uploadImage()">📷</button>
                 <input type="text" class="message-input" id="messageInput" placeholder="Type a message...">
                 <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mobile Action Dropdown Modal -->
+    <div id="mobileActionModal" class="modal">
+        <div class="modal-content">
+            <h3>Menu</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="modal-btn-primary" onclick="showCreateRoomModal(); closeModal('mobileActionModal')">➕ Create Room</button>
+                <button class="modal-btn-primary" onclick="showJoinRoomModal(); closeModal('mobileActionModal')">🔗 Join Room</button>
+                <button class="modal-btn-primary" onclick="joinFixedRoom(); closeModal('mobileActionModal')">⭐ Fixed Room</button>
+                <button class="modal-btn-secondary" onclick="closeModal('mobileActionModal')">Cancel</button>
             </div>
         </div>
     </div>
@@ -546,11 +778,11 @@
                 <span class="call-duration" id="callDuration">00:00</span>
             </div>
             <div class="header-actions">
-                <button class="minimize-btn" id="minimizeCallBtn" onclick="toggleMinimizeCall()">−</button>
+                <button class="minimize-btn" onclick="toggleMinimizeCall()">−</button>
                 <button class="close-call-btn" onclick="endCall()">✕</button>
             </div>
         </div>
-        <div class="call-videos-floating" id="callVideosContainer">
+        <div class="call-videos-floating">
             <div class="remote-video-container">
                 <video id="remoteVideoFloating" autoplay playsinline></video>
             </div>
@@ -558,11 +790,7 @@
                 <video id="localVideoFloating" autoplay muted playsinline></video>
             </div>
         </div>
-        <div class="audio-call-indicator" id="audioCallIndicator" style="display: none;">
-            <div class="avatar">🎤</div>
-            <div class="caller-name" id="callerName">Call in progress</div>
-        </div>
-        <div class="call-controls-floating" id="floatingCallControls">
+        <div class="call-controls-floating">
             <button class="call-control-btn mute-btn" id="floatingMuteBtn" onclick="toggleFloatingMute()">🔊</button>
             <button class="call-control-btn end-call-btn" onclick="endCall()">📞</button>
         </div>
@@ -571,7 +799,7 @@
     <!-- Modals -->
     <div id="createRoomModal" class="modal">
         <div class="modal-content">
-            <h3>✨ Create Private Space</h3>
+            <h3>Create Private Room</h3>
             <input type="password" id="roomPassword" placeholder="Set room password">
             <button class="modal-btn-primary" onclick="createRoom()">Create</button>
             <button class="modal-btn-secondary" onclick="closeModal('createRoomModal')">Cancel</button>
@@ -580,7 +808,7 @@
     
     <div id="joinRoomModal" class="modal">
         <div class="modal-content">
-            <h3>🔗 Join Private Space</h3>
+            <h3>Join Private Room</h3>
             <input type="text" id="joinRoomId" placeholder="Room ID">
             <input type="password" id="joinRoomPass" placeholder="Password">
             <button class="modal-btn-primary" onclick="joinRoom()">Join</button>
@@ -590,8 +818,8 @@
     
     <div id="inviteModal" class="modal">
         <div class="modal-content">
-            <h3>👥 Invite User</h3>
-            <div id="inviteUsersList" class="invite-users-list">Loading users...</div>
+            <h3>Invite User</h3>
+            <div id="inviteUsersList" class="invite-users-list">Loading...</div>
             <button class="modal-btn-secondary" onclick="closeModal('inviteModal')">Cancel</button>
         </div>
     </div>
@@ -611,7 +839,6 @@
         
         let activeSubscriptions = { global: null, private: null };
         
-        // PeerJS Variables
         let peer = null;
         let currentCall = null;
         let localPeerStream = null;
@@ -623,16 +850,55 @@
         
         let lastToastMessage = null;
         let lastToastTime = 0;
-        
-        // ✅ Auto video call variables
         let otherUserPeerId = null;
         let isCallInitiating = false;
+        let isSidebarMinimized = false;
         /*]]>*/
     </script>
     
     <script>
-        // ============ UI Functions ============
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('hidden'); }
+        // ============ Sidebar Functions ==========
+        const sidebar = document.getElementById('sidebar');
+        const sidebarMinimizeBtn = document.getElementById('sidebarMinimizeBtn');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileActionBtn = document.getElementById('mobileActionBtn');
+        
+        // Desktop sidebar minimize
+        if (sidebarMinimizeBtn) {
+            sidebarMinimizeBtn.addEventListener('click', () => {
+                isSidebarMinimized = !isSidebarMinimized;
+                if (isSidebarMinimized) {
+                    sidebar.classList.add('minimized');
+                    sidebarMinimizeBtn.innerHTML = '▶';
+                } else {
+                    sidebar.classList.remove('minimized');
+                    sidebarMinimizeBtn.innerHTML = '◀';
+                }
+            });
+        }
+        
+        // Mobile sidebar open
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+            });
+        }
+        
+        // Mobile action modal
+        if (mobileActionBtn) {
+            mobileActionBtn.addEventListener('click', () => {
+                document.getElementById('mobileActionModal').style.display = 'flex';
+            });
+        }
+        
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768) {
+                if (sidebar && mobileMenuBtn && !sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+                    sidebar.classList.remove('open');
+                }
+            }
+        });
         
         function toggleTheme() {
             document.body.classList.toggle('dark');
@@ -668,7 +934,7 @@
             }, 3000);
         }
         
-        // Create Private Room
+        // Create Room
         function createRoom() {
             let password = document.getElementById('roomPassword').value;
             if (!password) { showToast('Please enter a password', 'error'); return; }
@@ -686,9 +952,9 @@
                 else {
                     showToast('Room created! ID: ' + data.roomId, 'success');
                     let roomDetails = `Room ID: ${data.roomId}\nPassword: ${data.password}`;
-                    if (confirm(`Room created successfully!\n\n${roomDetails}\n\nCopy room details?`)) {
+                    if (confirm(`Room created!\n\n${roomDetails}\n\nCopy?`)) {
                         navigator.clipboard.writeText(`Room ID: ${data.roomId}\nPassword: ${data.password}`);
-                        showToast('Copied to clipboard!', 'success');
+                        showToast('Copied!', 'success');
                     }
                     switchToPrivateRoom(data.roomId);
                 }
@@ -698,40 +964,35 @@
             document.getElementById('roomPassword').value = '';
         }
         
-        // Join Room
         function joinRoom() {
             let roomId = document.getElementById('joinRoomId').value;
             let password = document.getElementById('joinRoomPass').value;
-            
             if (!roomId || !password) { showToast('Please enter Room ID and Password', 'error'); return; }
             
             closeModal('joinRoomModal');
-            document.getElementById('joinRoomId').value = '';
-            document.getElementById('joinRoomPass').value = '';
             joinPrivateRoom(roomId, password);
         }
         
         function joinPrivateRoom(roomId, password) {
             showToast('Joining room...', 'info');
-            
             fetch('/api/room/join?userId=' + userId, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ roomId: roomId, password: password })
             })
             .then(response => {
-                if (!response.ok) return response.json().then(err => { throw new Error(err.error || 'Failed to join room'); });
+                if (!response.ok) return response.json().then(err => { throw new Error(err.error || 'Failed to join'); });
                 return response.json();
             })
             .then(data => {
                 if (data.error) { showToast(data.error, 'error'); }
                 else { showToast('Joined room: ' + roomId, 'success'); switchToPrivateRoom(roomId); }
             })
-            .catch(error => { showToast(error.message || 'Failed to join room', 'error'); });
+            .catch(error => { showToast(error.message || 'Failed to join', 'error'); });
         }
         
         function joinFixedRoom() {
             if (currentRoomType === 'PRIVATE' && currentRoomId) {
-                showToast('Leaving current private room...', 'info');
+                showToast('Leaving current room...', 'info');
                 fetch('/api/room/leave?userId=' + userId, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ roomId: currentRoomId })
@@ -745,19 +1006,19 @@
         
         function showFixedRoomModal() {
             let existingModal = document.querySelector('.modal');
-            if (existingModal) existingModal.remove();
+            if (existingModal && existingModal.id !== 'mobileActionModal') existingModal.remove();
             
             let modal = document.createElement('div');
             modal.className = 'modal';
             modal.style.display = 'flex';
             modal.innerHTML = `
-                <div class="modal-content" style="max-width: 350px;">
-                    <h3>⭐ Join Fixed Space</h3>
-                    <input type="text" id="fixedRoomId" placeholder="Room ID" style="width: 100%; margin-bottom: 10px;" autofocus>
-                    <input type="password" id="fixedRoomPass" placeholder="Password" style="width: 100%; margin-bottom: 15px;">
+                <div class="modal-content">
+                    <h3>Join Fixed Room</h3>
+                    <input type="text" id="fixedRoomId" placeholder="Room ID" autofocus>
+                    <input type="password" id="fixedRoomPass" placeholder="Password">
                     <div>
                         <button class="modal-btn-primary" id="fixedJoinBtn">Join</button>
-                        <button class="modal-btn-secondary" onclick="closeFixedRoomModal(this)">Cancel</button>
+                        <button class="modal-btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
                     </div>
                 </div>
             `;
@@ -766,12 +1027,7 @@
             document.getElementById('fixedJoinBtn').onclick = function() {
                 let roomId = document.getElementById('fixedRoomId').value.trim();
                 let password = document.getElementById('fixedRoomPass').value.trim();
-                
-                if (!roomId || !password) {
-                    showToast('Please enter Room ID and Password', 'error');
-                    return;
-                }
-                
+                if (!roomId || !password) { showToast('Enter Room ID and Password', 'error'); return; }
                 modal.remove();
                 
                 const FIXED_ROOM_ID = 'jojo';
@@ -779,21 +1035,18 @@
                 
                 if (roomId === FIXED_ROOM_ID && password === FIXED_ROOM_PASS) {
                     showToast('Joining fixed room...', 'info');
-                    
                     fetch('/api/room/fixed')
                         .then(response => response.json())
                         .then(data => {
                             if (data.roomId) joinPrivateRoom(data.roomId, data.password);
-                            else showToast('Failed to join fixed room', 'error');
+                            else showToast('Failed to join', 'error');
                         })
-                        .catch(error => { showToast('Failed to join fixed room', 'error'); });
+                        .catch(error => { showToast('Failed to join', 'error'); });
                 } else {
                     showToast('Invalid Room ID or Password!', 'error');
                 }
             };
         }
-        
-        function closeFixedRoomModal(btn) { btn.closest('.modal').remove(); }
         
         function switchToPrivateRoom(roomId) {
             if (!stompClient || !stompClient.connected) {
@@ -810,8 +1063,8 @@
             currentRoomType = 'PRIVATE';
             currentRoomId = roomId;
             
-            document.getElementById('roomBadge').innerHTML = '🔒 Private: ' + roomId;
-            document.getElementById('chatTitle').innerHTML = `Private Room: ${roomId}`;
+            document.getElementById('roomBadge').innerHTML = '🔒 Private';
+            document.getElementById('chatTitle').innerHTML = 'Private Room';
             document.getElementById('callControls').style.display = 'flex';
             document.getElementById('leaveRoomBtn').style.display = 'block';
             document.getElementById('messages').innerHTML = '';
@@ -829,10 +1082,8 @@
                 body: JSON.stringify({ roomType: "PRIVATE", roomId: roomId })
             });
             
-            // Initialize PeerJS when entering private room
             initPeerJS();
-            
-            showToast('Now in private room: ' + roomId, 'success');
+            showToast('Now in private room', 'success');
         }
         
         function leaveRoom() {
@@ -851,12 +1102,7 @@
             }
             if (activeSubscriptions.private) { activeSubscriptions.private.unsubscribe(); activeSubscriptions.private = null; }
             
-            // Cleanup PeerJS
-            if (peer) {
-                peer.destroy();
-                peer = null;
-            }
-            
+            if (peer) { peer.destroy(); peer = null; }
             otherUserPeerId = null;
             isCallInitiating = false;
             
@@ -880,17 +1126,13 @@
                 });
         }
         
-        // ============ PeerJS Video Call Functions ============
+        // ============ PeerJS Video Call ==========
         function initPeerJS() {
             if (peer) return;
-            
             peer = new Peer();
             
             peer.on('open', (id) => {
-                console.log('✅ PeerJS ready! ID:', id);
-                showToast('Video call ready!', 'success');
-                
-                // Send peer ID to other user in the room via WebSocket
+                console.log('PeerJS ready:', id);
                 stompClient.send("/app/chat.private.send", {}, JSON.stringify({
                     content: "🎥 PEER_READY:" + id,
                     messageType: "TEXT",
@@ -902,72 +1144,39 @@
             });
             
             peer.on('call', (call) => {
-                console.log('📞 Incoming call from:', call.peer);
-                
-                // Auto-accept if not already in a call
                 if (!callActive && !currentCall) {
-                    showToast('Incoming video call! Accepting...', 'info');
+                    showToast('Incoming video call!', 'info');
                     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                         .then((stream) => {
                             localPeerStream = stream;
                             call.answer(stream);
                             setupPeerCall(stream, call);
                         })
-                        .catch(err => {
-                            console.error('Failed to get media:', err);
-                            showToast('Failed to get camera/mic', 'error');
-                            call.close();
-                        });
+                        .catch(err => { call.close(); });
                 } else {
-                    // Busy, reject call
                     call.close();
-                    showToast('Busy on another call', 'info');
-                }
-            });
-            
-            peer.on('error', (err) => {
-                console.error('PeerJS error:', err);
-                if (err.type !== 'unavailable-id') {
-                    showToast('Call error: ' + err.type, 'error');
                 }
             });
         }
         
-        // ✅ AUTO VIDEO CALL - No manual ID needed!
         function startVideoCall() {
-            if (currentRoomType !== 'PRIVATE') {
-                showToast('Calls only in private rooms!', 'error');
-                return;
-            }
+            if (currentRoomType !== 'PRIVATE') { showToast('Calls only in private rooms!', 'error'); return; }
+            if (!peer) { initPeerJS(); setTimeout(() => startVideoCall(), 1000); return; }
+            if (callActive || currentCall) { showToast('Already in a call!', 'info'); return; }
             
-            if (!peer) {
-                initPeerJS();
-                setTimeout(() => startVideoCall(), 1000);
-                return;
-            }
-            
-            if (callActive || currentCall) {
-                showToast('Already in a call!', 'info');
-                return;
-            }
-            
-            // Check if other user's Peer ID is available
             if (otherUserPeerId) {
-                showToast('Starting video call...', 'info');
                 makeCall(otherUserPeerId);
             } else {
-                showToast('Waiting for other user to be ready...', 'info');
-                // Wait for other user's Peer ID to arrive
+                showToast('Waiting for other user...', 'info');
                 let waitCount = 0;
                 const waitInterval = setInterval(() => {
                     waitCount++;
                     if (otherUserPeerId) {
                         clearInterval(waitInterval);
-                        showToast('Starting video call...', 'info');
                         makeCall(otherUserPeerId);
                     } else if (waitCount > 30) {
                         clearInterval(waitInterval);
-                        showToast('Other user not ready. Make sure they are in the room.', 'error');
+                        showToast('Other user not ready', 'error');
                     }
                 }, 1000);
             }
@@ -980,168 +1189,108 @@
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then((stream) => {
                     localPeerStream = stream;
-                    const call = peer.call(targetPeerId, stream, { metadata: { callerName: username } });
-                    currentCall = call;
-                    setupPeerCall(stream, call);
+                    currentCall = peer.call(targetPeerId, stream, { metadata: { callerName: username } });
+                    setupPeerCall(stream, currentCall);
                 })
-                .catch(err => {
-                    console.error('Failed to get media:', err);
-                    showToast('Failed to access camera/mic', 'error');
-                    isCallInitiating = false;
-                });
+                .catch(err => { showToast('Camera/mic access failed', 'error'); isCallInitiating = false; });
         }
         
         function setupPeerCall(myStream, call) {
-            // Show local video
-            const localVideo = document.getElementById('localVideoFloating');
-            localVideo.srcObject = myStream;
+            document.getElementById('localVideoFloating').srcObject = myStream;
             document.getElementById('localVideoContainer').style.display = 'block';
-            document.getElementById('callIcon').innerHTML = '📹';
-            document.getElementById('callStatus').innerHTML = 'Connecting...';
             showFloatingCall();
             
             call.on('stream', (remoteStream) => {
-                console.log('✅ Received remote stream');
-                const remoteVideo = document.getElementById('remoteVideoFloating');
-                remoteVideo.srcObject = remoteStream;
-                remoteVideo.play().catch(e => console.log('Play error:', e));
-                
+                document.getElementById('remoteVideoFloating').srcObject = remoteStream;
                 callActive = true;
                 document.getElementById('callStatus').innerHTML = 'Connected';
                 startCallDuration();
                 isCallInitiating = false;
             });
-            
-            call.on('close', () => {
-                console.log('Call ended');
-                endCall();
-            });
-            
-            call.on('error', (err) => {
-                console.error('Call error:', err);
-                showToast('Call error', 'error');
-                endCall();
-            });
+            call.on('close', () => endCall());
         }
         
-        // Handle peer ready messages
         function handlePeerMessage(content) {
             if (content.startsWith('🎥 PEER_READY:')) {
                 const peerId = content.split(':')[1];
-                if (peerId !== peer?.id) { // Don't store own peer ID
+                if (peerId !== peer?.id) {
                     otherUserPeerId = peerId;
-                    console.log('✅ Other user ready, Peer ID:', peerId);
-                    showToast('Other user is ready for video call!', 'success');
+                    showToast('Other user ready! Tap Video Call', 'success');
                 }
             }
         }
         
         function endCall() {
-            console.log('🔴 Ending call...');
+            if (currentCall) { currentCall.close(); currentCall = null; }
+            if (localPeerStream) { localPeerStream.getTracks().forEach(t => t.stop()); localPeerStream = null; }
             
-            if (currentCall) {
-                currentCall.close();
-                currentCall = null;
-            }
-            
-            if (localPeerStream) {
-                localPeerStream.getTracks().forEach(track => track.stop());
-                localPeerStream = null;
-            }
-            
-            // Clear video elements
             const remoteVideo = document.getElementById('remoteVideoFloating');
             const localVideo = document.getElementById('localVideoFloating');
-            if (remoteVideo) {
-                remoteVideo.pause();
-                remoteVideo.srcObject = null;
-            }
-            if (localVideo) {
-                localVideo.pause();
-                localVideo.srcObject = null;
-            }
+            if (remoteVideo) { remoteVideo.pause(); remoteVideo.srcObject = null; }
+            if (localVideo) { localVideo.pause(); localVideo.srcObject = null; }
             
             callActive = false;
             isCallInitiating = false;
-            
-            if (callDurationInterval) {
-                clearInterval(callDurationInterval);
-                callDurationInterval = null;
-            }
+            if (callDurationInterval) clearInterval(callDurationInterval);
             callStartTime = null;
-            
             hideFloatingCall();
             showToast('Call ended', 'info');
         }
         
-        // ============ Floating Call UI Functions ==========
         function showFloatingCall() {
-            const floatingCall = document.getElementById('floatingCall');
-            floatingCall.style.display = 'block';
+            document.getElementById('floatingCall').style.display = 'block';
             isCallMinimized = false;
-            floatingCall.classList.remove('minimized');
-            document.getElementById('callVideosContainer').style.display = 'block';
-            document.getElementById('audioCallIndicator').style.display = 'none';
+            document.getElementById('floatingCall').classList.remove('minimized');
         }
         
         function hideFloatingCall() {
             document.getElementById('floatingCall').style.display = 'none';
-            if (callDurationInterval) { clearInterval(callDurationInterval); callDurationInterval = null; }
+            if (callDurationInterval) clearInterval(callDurationInterval);
         }
         
         function toggleMinimizeCall() {
             isCallMinimized = !isCallMinimized;
-            const floatingCall = document.getElementById('floatingCall');
-            if (isCallMinimized) floatingCall.classList.add('minimized');
-            else floatingCall.classList.remove('minimized');
-        }
-        
-        function updateCallDuration() {
-            if (!callStartTime) return;
-            const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
-            const mins = Math.floor(elapsed / 60);
-            const secs = elapsed % 60;
-            document.getElementById('callDuration').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            const el = document.getElementById('floatingCall');
+            if (isCallMinimized) el.classList.add('minimized');
+            else el.classList.remove('minimized');
         }
         
         function startCallDuration() {
             callStartTime = Date.now();
             if (callDurationInterval) clearInterval(callDurationInterval);
-            callDurationInterval = setInterval(updateCallDuration, 1000);
+            callDurationInterval = setInterval(() => {
+                if (!callStartTime) return;
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const mins = Math.floor(elapsed / 60);
+                const secs = elapsed % 60;
+                document.getElementById('callDuration').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
         }
         
         function toggleFloatingMute() {
             if (localPeerStream) {
-                const audioTracks = localPeerStream.getAudioTracks();
-                audioTracks.forEach(track => { track.enabled = !track.enabled; });
+                localPeerStream.getAudioTracks().forEach(t => t.enabled = !t.enabled);
                 isMuted = !isMuted;
-                const muteBtn = document.getElementById('floatingMuteBtn');
-                muteBtn.innerHTML = isMuted ? '🔇' : '🔊';
-                muteBtn.classList.toggle('active', isMuted);
-                showToast(isMuted ? 'Microphone muted' : 'Microphone unmuted', 'info');
+                const btn = document.getElementById('floatingMuteBtn');
+                btn.innerHTML = isMuted ? '🔇' : '🔊';
             }
         }
         
-        // Draggable
         function makeDraggable() {
             const floatingCall = document.getElementById('floatingCall');
             const header = document.getElementById('callHeader');
-            let isDragging = false;
-            let offsetX, offsetY;
+            let isDragging = false, offsetX, offsetY;
             
-            header.removeEventListener('mousedown', dragStart);
-            header.addEventListener('mousedown', dragStart);
-            
-            function dragStart(e) {
+            header.addEventListener('mousedown', (e) => {
                 if (e.target.classList.contains('minimize-btn') || e.target.classList.contains('close-call-btn')) return;
                 isDragging = true;
                 offsetX = e.clientX - floatingCall.offsetLeft;
                 offsetY = e.clientY - floatingCall.offsetTop;
                 floatingCall.style.cursor = 'grabbing';
                 e.preventDefault();
-            }
+            });
             
-            function dragMove(e) {
+            document.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
                 let left = e.clientX - offsetX;
                 let top = e.clientY - offsetY;
@@ -1151,72 +1300,48 @@
                 floatingCall.style.right = 'auto';
                 floatingCall.style.top = top + 'px';
                 floatingCall.style.bottom = 'auto';
-            }
+            });
             
-            function dragEnd() {
-                isDragging = false;
-                floatingCall.style.cursor = '';
-            }
-            
-            document.removeEventListener('mousemove', dragMove);
-            document.removeEventListener('mouseup', dragEnd);
-            document.addEventListener('mousemove', dragMove);
-            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('mouseup', () => { isDragging = false; floatingCall.style.cursor = ''; });
         }
         
-        // ============ WebSocket Functions ==========
+        // ============ WebSocket ==========
         function waitForLibraries() {
-            if (typeof Stomp !== 'undefined' && typeof SockJS !== 'undefined') { connectWebSocket(); }
+            if (typeof Stomp !== 'undefined' && typeof SockJS !== 'undefined') connectWebSocket();
             else if (retryCount < 20) { retryCount++; setTimeout(waitForLibraries, 500); }
-            else { showToast('Failed to connect. Please refresh.', 'error'); }
+            else showToast('Failed to connect. Refresh.', 'error');
         }
         
-        let reconnectAttempts = 0;
-        const MAX_RECONNECT_ATTEMPTS = 10;
-        let reconnectTimeout = null;
+        let reconnectAttempts = 0, reconnectTimeout = null;
         
         function connectWebSocket() {
             if (reconnectTimeout) clearTimeout(reconnectTimeout);
-            
             try {
                 const socket = new SockJS('/ws');
                 stompClient = Stomp.over(socket);
                 stompClient.debug = null;
-                
                 stompClient.connect({}, 
-                    function(frame) {
-                        console.log('✅ Connected to WebSocket');
+                    () => {
                         reconnectAttempts = 0;
-                        showToast('Connected!', 'success');
-                        
                         if (window.heartbeatInterval) clearInterval(window.heartbeatInterval);
                         window.heartbeatInterval = setInterval(() => {
-                            if (stompClient && stompClient.connected) {
-                                stompClient.send("/app/ping", {}, {});
-                            }
+                            if (stompClient?.connected) stompClient.send("/app/ping", {}, {});
                         }, 30000);
-                        
                         onConnected();
                     },
-                    function(error) {
-                        console.error('WebSocket error:', error);
+                    () => {
                         reconnectAttempts++;
                         let delay = Math.min(2000 * Math.pow(2, reconnectAttempts - 1), 30000);
-                        showToast(`Reconnecting in ${delay/1000}s...`, 'info');
                         reconnectTimeout = setTimeout(() => connectWebSocket(), delay);
                     }
                 );
-            } catch (error) {
-                console.error('Connection error:', error);
-                reconnectTimeout = setTimeout(connectWebSocket, 5000);
-            }
+            } catch(e) { reconnectTimeout = setTimeout(connectWebSocket, 5000); }
         }
         
         function onConnected() {
             stompClient.subscribe('/topic/global', msg => { if (currentRoomType === 'GLOBAL') displayMessage(JSON.parse(msg.body)); });
             stompClient.subscribe('/topic/users', msg => updateUsersList(JSON.parse(msg.body)));
             stompClient.subscribe('/user/' + userId + '/queue/invites', handleInvite);
-            
             stompClient.send("/app/chat.join", {}, JSON.stringify({ content: username + " joined", messageType: "TEXT", username: username }));
             stompClient.send("/app/chat.users", {}, {});
             loadRecentMessages();
@@ -1224,7 +1349,7 @@
         
         function handleInvite(invite) {
             const data = JSON.parse(invite.body);
-            if (data.type === 'INVITE' && confirm(`${data.fromUser} invited you to join a private room! Accept?`)) {
+            if (data.type === 'INVITE' && confirm(`${data.fromUser} invited you! Accept?`)) {
                 fetch('/api/invite/accept?userId=' + userId, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ inviteId: data.inviteId })
@@ -1236,7 +1361,6 @@
             let input = document.getElementById('messageInput');
             let content = input.value.trim();
             if (!content || !stompClient?.connected) return;
-            
             stompClient.send(currentRoomType === 'PRIVATE' ? "/app/chat.private.send" : "/app/chat.send", {}, JSON.stringify({
                 content, messageType: "TEXT", userId, username, roomType: currentRoomType, roomId: currentRoomId
             }));
@@ -1244,10 +1368,7 @@
         }
         
         function displayMessage(message) {
-            // Check for peer messages
-            if (message.content && message.content.startsWith('🎥 PEER_READY:')) {
-                handlePeerMessage(message.content);
-            }
+            if (message.content?.startsWith('🎥 PEER_READY:')) handlePeerMessage(message.content);
             
             const container = document.getElementById('messages');
             const isOwn = message.userId === userId;
@@ -1285,7 +1406,7 @@
                     const container = document.getElementById('messages');
                     container.innerHTML = '';
                     if (messages.length === 0) {
-                        container.innerHTML = '<div class="message"><div class="message-header"><span class="message-sender">💜 VioletChat</span><span class="message-time">Now</span></div><div class="message-content">✨ Welcome to VioletChat! Start chatting...</div></div>';
+                        container.innerHTML = '<div class="message"><div class="message-header"><span class="message-sender">TalkToAnybody</span><span class="message-time">Now</span></div><div class="message-content">✨ Welcome to TalkToAnybody!</div></div>';
                     } else {
                         messages.reverse().forEach(msg => displayMessage(msg));
                     }
@@ -1311,15 +1432,14 @@
         }
         
         function sendInvite(toUserId, toUsername) {
-            showToast(`Sending invite to ${toUsername}...`, 'info');
+            showToast(`Inviting ${toUsername}...`, 'info');
             fetch('/api/invite/send?userId=' + userId, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ roomId: currentRoomId, toUserId: toUserId })
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.error) showToast(data.error, 'error');
-                  else showToast(`Invite sent to ${toUsername}!`, 'success');
-              });
+            }).then(r => r.json()).then(data => {
+                if (data.error) showToast(data.error, 'error');
+                else showToast(`Invite sent to ${toUsername}!`, 'success');
+            });
             closeModal('inviteModal');
         }
         
@@ -1330,16 +1450,16 @@
             return div.innerHTML;
         }
         
+        const emojis = ['😊', '😂', '❤️', '👍', '🔥', '🎉', '😢', '😡', '😎', '🤔', '🥳', '😍'];
         function openEmojiPicker() {
             let modal = document.createElement('div');
             modal.className = 'modal';
             modal.style.display = 'flex';
-            const emojis = ['😊', '😂', '❤️', '👍', '🔥', '🎉', '😢', '😡', '😎', '🤔', '🥳', '😍'];
             modal.innerHTML = `
-                <div class="modal-content" style="max-width: 450px;">
-                    <h3>😊 Choose Emoji</h3>
+                <div class="modal-content">
+                    <h3>Choose Emoji</h3>
                     <div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 15px 0;">
-                        ${emojis.map(e => `<button onclick="insertEmoji('${e}')" style="margin: 5px; padding: 12px; font-size: 28px; background: var(--surface-2); border: none; border-radius: 12px; cursor: pointer;">${e}</button>`).join('')}
+                        ${emojis.map(e => `<button onclick="insertEmoji('${e}')" style="width: 44px; height: 44px; font-size: 1.5rem; background: var(--surface-2); border: none; border-radius: 10px; cursor: pointer;">${e}</button>`).join('')}
                     </div>
                     <button class="modal-btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
                 </div>
@@ -1356,11 +1476,11 @@
             let input = document.createElement('input');
             input.type = 'file';
             input.accept = 'image/*';
-            input.onchange = function(e) {
+            input.onchange = (e) => {
                 let file = e.target.files[0];
                 if (!file || file.size > 5 * 1024 * 1024) return showToast(file ? 'Image too large' : 'Invalid', 'error');
                 let reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = (e) => {
                     if (!stompClient?.connected) return showToast('Not connected', 'error');
                     stompClient.send(currentRoomType === 'PRIVATE' ? "/app/chat.private.send" : "/app/chat.send", {}, JSON.stringify({
                         content: "📷 Image", messageType: "IMAGE", userId, username, roomType: currentRoomType,
@@ -1372,13 +1492,11 @@
             input.click();
         }
         
-        // Initialize
         window.addEventListener('beforeunload', () => {
             if (callActive) endCall();
             if (peer) peer.destroy();
             if (stompClient?.connected) {
                 if (currentRoomType === 'PRIVATE' && currentRoomId) stompClient.send("/app/chat.private.leave", {}, JSON.stringify({ roomId: currentRoomId, userId, username }));
-                stompClient.send("/app/chat.leave", {}, {});
                 stompClient.disconnect();
             }
         });
@@ -1386,7 +1504,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (userId && username) waitForLibraries();
             else window.location.href = '/';
-            
             document.getElementById('messageInput').addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
             makeDraggable();
         });
